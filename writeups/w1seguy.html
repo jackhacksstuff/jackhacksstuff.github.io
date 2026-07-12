@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>W1seGuy — JackHacksStuff</title>
+<title>W1seGuy | JackHacksStuff</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
@@ -531,50 +531,25 @@
     <span class="tool-tag">xor</span>
     <span class="tool-tag">cryptanalysis</span>
     <span class="tool-tag">known-plaintext attack</span>
-    <span class="tool-tag">netcat</span>
     <span class="tool-tag">pwntools</span>
   </div>
 
   <div class="wu-body">
 
     <h2 id="overview">// Overview</h2>
-    <p>
-      W1seGuy is a TryHackMe room that simulates a service running an XOR encryption challenge.
-      The server presents an XOR-encrypted version of a flag, then asks for the encryption key.
-      Submitting the correct key reveals the second flag.
-    </p>
-    <p>
-      The room is a practical exercise in <strong>cryptanalysis</strong>: given the encrypted data and
-      knowledge of the flag format, we can recover the encryption key without brute force. This
-      demonstrates why XOR alone is not encryption, and why known-plaintext attacks are a real threat
-      to weak cryptographic implementations.
-    </p>
+    <p>W1seGuy is a TryHackMe room that simulates a service running an XOR encryption challenge. The server gives an XOR-encrypted version of a flag and asks for the encryption key. When you submit the correct key, it reveals the second flag.</p>
+
+    <p>The room is a hands-on exercise in <strong>cryptanalysis</strong>. With the encrypted data and knowledge of the flag format, we can find the encryption key without resorting to brute force. This shows why XOR by itself is not secure encryption and highlights how known-plaintext attacks can threaten weak cryptographic implementations.</p>
 
     <h2 id="background">// Background: XOR &amp; Known-Plaintext Attacks</h2>
-    <p>
-      XOR (exclusive OR) is a bitwise operation with a special property: if <code>A XOR B = C</code>,
-      then <code>C XOR B = A</code>. Encryption with XOR is symmetric — the same operation encrypts
-      and decrypts.
-    </p>
-    <p>
-      When the same key is repeated (a repeating-key XOR), patterns emerge. If an attacker knows
-      <em>any</em> part of the plaintext, they can recover the corresponding key bytes by XORing
-      the ciphertext with the known plaintext.
-    </p>
-    <p>
-      In this challenge, the flag format <code>THM{...}</code> provides the known plaintext needed
-      to recover the entire key.
-    </p>
+    <p>XOR (exclusive OR) is a bitwise operation with a unique property: if <code>A XOR B</code> equals <code>C</code>, then <code>C XOR B</code> equals <code>A</code>. Encryption with XOR is symmetric; the same operation is used for both encryption and decryption.</p>
+
+    <p>When the same key is repeated (a repeating-key XOR), patterns start to show. If an attacker knows <em>any</em> part of the plaintext, they can find the corresponding key bytes by XORing the ciphertext with the known plaintext.</p>
+
+    <p>In this challenge, the flag format <code>THM{...}</code> gives the known plaintext needed to recover the entire key.</p>
 
     <h2 id="recon">// Reconnaissance: Examining the Source</h2>
-    <p>
-      The challenge provides a Python script running on the server. Initial analysis with
-      <code>file</code> and <code>strings</code> reveals it's a Python source file, not a compiled binary:
-    </p>
-    <pre>jackhacksstuff@kali:~$ file source-1705339805281
-source-1705339805281: Python script, ASCII text executable</pre>
-
-    <p>Key sections of the code:</p>
+    <p>The room provides a Python script as a downloadable attachment. Let's take a look at the key sections.</p>
 
     <pre><code>flag = open('flag.txt','r').read().strip()
 
@@ -594,38 +569,37 @@ def start(server):
     if key_answer == key:
         send_message(server, "Congrats! ... Here is flag 2: " + flag + "\n")</code></pre>
 
-    <div class="dead-end">
-      Initial attempts to run <code>ltrace</code> failed because this is a Python script, not an ELF
-      binary. This shifted the approach from binary analysis to source code review and cryptanalysis.
-    </div>
+    <p>From this, we can see:</p>
+    <ul>
+      <li>The flag format is <code>THM{...}</code> (the placeholder confirms this).</li>
+      <li>The key is 5 characters long and alphanumeric.</li>
+      <li>Each character of the flag is XORed with a repeating key character.</li>
+      <li>The result is hex-encoded and sent to the client.</li>
+    </ul>
+
+    <p>The server runs this script, generates a random key for each connection, encrypts the flag, and asks for the key. Our job is to recover the key from the encrypted data we receive.</p>
 
     <h2 id="attack">// The Attack: Known-Plaintext XOR Key Recovery</h2>
-    <p>
-      The encryption process is:
-    </p>
+    <p>The encryption process involves three steps:</p>
     <ol>
       <li>Generate a random 5-character alphanumeric key.</li>
       <li>XOR each character of the flag with a repeating key character.</li>
       <li>Hex-encode the result and send it to the client.</li>
     </ol>
 
-    <p>
-      The weakness is that we know part of the plaintext: the flag format <code>THM{...}</code>.
-    </p>
+    <p>The weakness lies in the fact that we know part of the plaintext, which follows the format <code>THM{...}</code>.</p>
 
-    <p>
-      Because XOR is symmetric (<code>A ⊕ B = C</code> and <code>C ⊕ B = A</code>), we can recover the key if we know the ciphertext and the plaintext.
-    </p>
+    <p>Since XOR is symmetric (<code>A ⊕ B = C</code> and <code>C ⊕ B = A</code>), we can recover the key if we have both the ciphertext and the plaintext.</p>
 
     <ul>
-      <li><strong>First 4 characters:</strong> We know the plaintext starts with <code>THM{</code>. XORing these with the first 4 bytes of the ciphertext gives us the first 4 characters of the key.</li>
-      <li><strong>5th character:</strong> Since the flag length is a multiple of 5, the last character of the plaintext (<code>}</code>) was XORed with the 5th character of the key. XORing these gives us the final key character.</li>
+      <li><strong>First 4 characters:</strong> We know the plaintext starts with <code>THM{</code>. XORing these with the first 4 bytes of the ciphertext reveals the first 4 characters of the key.</li>
+      <li><strong>5th character:</strong> Since the flag length is a multiple of 5, the last character of the plaintext (<code>}</code>) was XORed with the 5th character of the key. XORing these provides the last key character.</li>
     </ul>
 
     <h2 id="execution">// Execution: Connecting &amp; Decrypting</h2>
 
     <p><strong>Step 1: Capture the Ciphertext</strong></p>
-    <p>First, connect to the service to get the encrypted flag. The server gives you a hex string:</p>
+    <p>First, connect to the service to get the encrypted flag. The server gives you a hex string.</p>
 
     <pre>jackhacksstuff@kali:~$ nc &lt;target_ip&gt; 1337
 This XOR encoded text has flag 1: &lt;hex_string&gt;
@@ -634,14 +608,14 @@ What is the encryption key?</pre>
     <p>Copy the <code>&lt;hex_string&gt;</code>. This is our ciphertext.</p>
 
     <p><strong>Step 2: Understand the XOR Math</strong></p>
-    <p>We know from the source code that:</p>
+    <p>From the source code, we know:</p>
     <ul>
       <li><strong>Encryption:</strong> <code>Ciphertext = Plaintext ⊕ Key</code></li>
       <li><strong>Decryption:</strong> <code>Plaintext = Ciphertext ⊕ Key</code></li>
       <li>XOR is its own inverse. If we know the <strong>plaintext</strong> and the <strong>ciphertext</strong>, we can recover the <strong>key</strong>: <code>Key = Ciphertext ⊕ Plaintext</code>.</li>
     </ul>
 
-    <p>We also know two critical pieces of plaintext:</p>
+    <p>We also have two important pieces of plaintext:</p>
     <ul>
       <li><strong>The flag format:</strong> It starts with <code>THM{</code> and ends with <code>}</code>.</li>
       <li>The key length is <strong>5 characters</strong>.</li>
@@ -673,16 +647,16 @@ print(f"Full key: {key.decode()}")
 flag = bytes([ciphertext[i] ^ key[i % len(key)] for i in range(len(ciphertext))])
 print(f"Flag 1: {flag.decode()}")</code></pre>
 
-    <p>Run the complete script:</p>
+    <p>Run the complete script.</p>
 
     <pre>jackhacksstuff@kali:~$ python3 recover_key.py
 First 4 key chars: 5sJ3
 5th key char: c
 Full key: 5sJ3c
-Flag 1: THM{p1alntExtAtt4ckcAnr3alLyhUrty0urxOr}</pre>
+Flag 1: THM{p1alntExt...}</pre>
 
     <p><strong>Step 4: Get Flag 2</strong></p>
-    <p>Connect to the server again and enter the key when prompted:</p>
+    <p>Connect to the server again and enter the key when prompted.</p>
 
     <pre>jackhacksstuff@kali:~$ nc &lt;target_ip&gt; 1337
 This XOR encoded text has flag 1: &lt;hex_string&gt;
@@ -691,7 +665,7 @@ Congrats! That is the correct key! Here is flag 2: &lt;flag_2&gt;</pre>
 
     <div class="note">
       <strong>Pro Tip: Using pwntools</strong><br>
-      For a more streamlined approach, you can use the <code>pwntools</code> library. It handles the connection and XOR operations elegantly. Here's a script that does everything in one go:
+      For a simpler approach, you can use the <code>pwntools</code> library. It handles the connection and XOR operations smoothly. Here's a script that does everything in one go:
     </div>
 
     <pre><code>from pwn import *
@@ -727,7 +701,7 @@ conn.close()</code></pre>
 
     <div class="flag-box">
       <span class="flag-label">Flag 1 — Decrypted</span>
-      <span class="flag-value">THM{p1aln...}</span>
+      <span class="flag-value">THM{p1alntExt...}</span>
     </div>
 
     <div class="flag-box">
@@ -738,49 +712,35 @@ conn.close()</code></pre>
     <h2 id="takeaways">// Key Takeaways</h2>
 
     <div class="takeaway">
-      <strong>XOR is not encryption.</strong> XOR is a bitwise operation, not a cryptographic
-      primitive suitable for protecting secrets. Without a truly random, non-repeating key (a one-time pad),
-      XOR-based "encryption" is vulnerable to cryptanalysis.
+      <strong>XOR is not encryption.</strong> It is a bitwise operation, not a method for protecting secrets. Without a truly random, non-repeating key (a one-time pad), XOR-based "encryption" is weaks against attacks.
     </div>
 
     <div class="takeaway">
-      <strong>Known-plaintext attacks are practical.</strong> This challenge demonstrates that even
-      knowing a small fragment of plaintext (the flag format) can completely compromise the entire
-      encrypted message.
+      <strong>Known-plaintext attacks are a real threat.</strong> This challenge shows that knowing even a small part of the plaintext (the flag format) can expose the entire encrypted message.
     </div>
 
     <div class="takeaway">
-      <strong>Key length matters.</strong> A 5-character key drawn from 62 possible characters gives
-      62⁵ ≈ 916 million possibilities — trivial for modern hardware. Even without the known-plaintext
-      shortcut, brute force would be feasible.
+      <strong>Key length is important.</strong> A 5-character key made from 62 possible characters creates about 916 million possibilities, which is easy for modern hardware to break. Even without the known-plaintext shortcut, brute force would still be possible.
     </div>
 
     <div class="takeaway">
-      <strong>Always handle binary data as bytes.</strong> When working with XOR and hex-encoded data,
-      use <code>bytes</code> and <code>bytearray</code> in Python. String operations can produce
-      unexpected results with null bytes or control characters.
+      <strong>Always handle binary data as bytes.</strong> When using XOR and hex-encoded data, rely on <code>bytes</code> and <code>bytearray</code> in Python. String operations can give unexpected results with null bytes or control characters.
     </div>
 
     <div class="takeaway">
-      <strong>Understand the source code.</strong> The room provided the complete server source.
-      Reading it carefully revealed the key length, the encryption method, and the flag format — all
-      essential information for the attack.
+      <strong>Understand the source code.</strong> The room provided the full server source. Reading it closely revealed the key length, the encryption method, and the flag format, which are all crucial for the attack.
     </div>
 
   </div>
 
   <div class="wu-footer">
-    <a href="summit.html" class="footer-nav-link prev">
+    <a href="lofi.html" class="footer-nav-link prev">
       <span class="footer-nav-label">← Previous</span>
-      <span class="footer-nav-title">Summit</span>
+      <span class="footer-nav-title">Lo-Fi</span>
     </a>
     <div class="footer-center">
       <a href="../writeups.html">All write-ups</a>
     </div>
-    <a href="#" class="footer-nav-link next">
-      <span class="footer-nav-label">Next →</span>
-      <span class="footer-nav-title">Coming soon</span>
-    </a>
   </div>
 
 </main>
