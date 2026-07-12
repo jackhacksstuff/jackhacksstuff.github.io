@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lo-Fi | JackHacksStuff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent:     #00ff88;
+    --accent-rgb: 0,255,136;
+    --bg:       #090b0e;
+    --surface:  #0e1116;
+    --surface2: #131820;
+    --border:   #1c2330;
+    --border2:  #26303f;
+    --blue:     #7b9cff;
+    --text:     #c5d4e8;
+    --muted:    #48586e;
+    --muted2:   #6b7f97;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'Syne', sans-serif;
+    --rail:     48px;
+    --content:  720px;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── Layout ── */
+  .rail {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--rail);
+    height: 100vh;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 0;
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .rail-logo {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: #fff;
+    white-space: nowrap;
+    text-decoration: none;
+    margin-bottom: auto;
+  }
+
+  .rail-logo span { color: var(--accent); }
+
+  .rail-toc {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin: 2rem 0;
+    overflow: hidden;
+  }
+
+  .rail-line { width: 1px; flex: 1; background: var(--border); }
+
+  .rail-tick {
+    width: 6px; height: 1px;
+    background: var(--border2);
+    flex-shrink: 0;
+    transition: background 0.3s;
+    cursor: pointer;
+  }
+
+  .rail-tick.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  .rail-bottom {
+    font-size: 0.6rem;
+    color: var(--muted);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    letter-spacing: 0.1em;
+  }
+
+  main { margin-left: var(--rail); }
+
+  /* ── Nav ── */
+  nav {
+    position: sticky;
+    top: 0; z-index: 90;
+    background: rgba(9,11,14,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 3rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-back {
+    font-size: 0.75rem;
+    color: var(--muted2);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s;
+  }
+
+  .nav-back:hover { color: var(--accent); }
+
+  .nav-meta {
+    font-size: 0.7rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-badge {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── Write-up header ── */
+  .wu-header {
+    padding: 5rem 3rem 3.5rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .wu-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.3;
+    mask-image: radial-gradient(ellipse 70% 100% at 90% 50%, black 0%, transparent 100%);
+  }
+
+  .wu-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 3rem;
+    width: 80px; height: 1px;
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.6);
+  }
+
+  .wu-eyebrow {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+
+  .wu-title {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    color: #fff;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .wu-meta-row {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .wu-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .wu-meta-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .wu-meta-value {
+    font-size: 0.8rem;
+    color: var(--text);
+  }
+
+  .wu-meta-value.accent { color: var(--accent); }
+
+  /* ── Tool tags ── */
+  .tool-row {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    padding: 1.25rem 3rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .tool-tag {
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    color: var(--muted2);
+    background: var(--border);
+    padding: 0.2rem 0.5rem;
+  }
+
+  /* ── Body ── */
+  .wu-body {
+    max-width: calc(var(--content) + 6rem);
+    padding: 4rem 3rem;
+    margin: 0 auto;
+  }
+
+  /* ── Typography components ── */
+
+  .wu-body h2 {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 0.78rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 3rem 0 1.25rem;
+    padding-top: 3rem;
+    border-top: 1px solid var(--border);
+    scroll-margin-top: 80px;
+  }
+
+  .wu-body h2:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+  .wu-body h3 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  .wu-body p {
+    font-size: 0.82rem;
+    color: var(--muted2);
+    line-height: 2;
+    margin-bottom: 1rem;
+  }
+
+  .wu-body p strong { color: var(--text); font-weight: 500; }
+  .wu-body p code {
+    background: var(--surface);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
+  /* ── Lists ── */
+  .wu-body ol, .wu-body ul {
+    font-size: 0.82rem;
+    color: var(--muted2);
+    line-height: 2;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+
+  .wu-body ol li, .wu-body ul li {
+    margin-bottom: 0.5rem;
+  }
+
+  .wu-body ol li strong, .wu-body ul li strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .wu-body ol code, .wu-body ul code {
+    background: var(--surface);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
+  /* Code block */
+  .wu-body pre {
+    background: var(--surface);
+    border-left: 2px solid var(--accent);
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    font-size: 0.76rem;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  .wu-body pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    border: none;
+    font-size: inherit;
+  }
+
+  /* Flag box */
+  .flag-box {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    padding: 0.85rem 1.25rem;
+    margin: 1.25rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .flag-box .flag-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .flag-box .flag-value {
+    color: var(--accent);
+    font-size: 0.82rem;
+    word-break: break-all;
+  }
+
+  .takeaway {
+    background: rgba(var(--accent-rgb), 0.04);
+    border-left: 2px solid var(--accent);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted2);
+    line-height: 1.8;
+  }
+
+  .takeaway strong { color: var(--text); font-weight: 500; }
+
+  .dead-end {
+    background: rgba(255,255,255,0.02);
+    border-left: 2px solid var(--border2);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .dead-end::before {
+    content: '✗ dead end — ';
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--muted);
+  }
+
+  .note {
+    background: rgba(123,156,255,0.04);
+    border-left: 2px solid var(--blue);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted2);
+    line-height: 1.8;
+  }
+
+  .note strong { color: #9fb8ff; font-weight: 500; }
+
+  /* ── Footer ── */
+  .wu-footer {
+    border-top: 1px solid var(--border);
+    margin: 0 3rem;
+    padding: 2.5rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .footer-nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    text-decoration: none;
+    max-width: 220px;
+  }
+
+  .footer-nav-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .footer-nav-title {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--muted2);
+    transition: color 0.2s;
+  }
+
+  .footer-nav-link:hover .footer-nav-title { color: var(--accent); }
+
+  .footer-nav-link.next { text-align: right; }
+
+  .footer-center {
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .footer-center a {
+    color: var(--muted2);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-center a:hover { color: var(--accent); }
+
+  @media (max-width: 768px) {
+    :root { --rail: 0px; }
+    .rail { display: none; }
+    main { margin-left: 0; }
+    nav, .wu-header, .tool-row { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .wu-body { padding: 2.5rem 1.5rem; }
+    .wu-footer { margin: 0 1.5rem; }
+    .wu-title { font-size: 2.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="background"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="enumeration"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="exploitation"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="flags"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="takeaways"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Easy</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge">Easy</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · web exploitation</div>
+    <h1 class="wu-title">Lo-Fi</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-07-11</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent">Easy</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">1</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">LFI</span>
+    <span class="tool-tag">path traversal</span>
+    <span class="tool-tag">proc filesystem</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p>
+      Lo-Fi is a TryHackMe room that shows a classic <strong>Local File Inclusion (LFI)</strong>
+      vulnerability. The goal is simple: go to the provided URL and find the flag in the
+      root of the filesystem.
+    </p>
+    <p>
+      Though the room is rated "Easy," it teaches an important lesson about <strong>improper input
+      sanitization</strong>. This bug still affects web applications today.
+    </p>
+
+    <h2 id="vulnerability">// The Vulnerability: LFI via ?page=</h2>
+
+    <p>
+      Visiting the provided URL shows a straightforward music-themed page. Looking at the page source
+      uncovers an important clue in the sidebar:
+    </p>
+
+    <pre>&lt;!-- Sidebar Widgets Column --&gt;
+&lt;div class="card my-4"&gt;
+  &lt;h5 class="card-header"&gt;Discography&lt;/h5&gt;
+  &lt;div class="card-body"&gt;
+    &lt;ul class="list-unstyled mb-0"&gt;
+      &lt;li&gt;&lt;a href="/?page=relax.php"&gt;Relax&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href="/?page=sleep.php"&gt;Sleep&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href="/?page=chill.php"&gt;Chill&lt;/a&gt;&lt;/li&gt;    
+      &lt;li&gt;&lt;a href="/?page=coffee.php"&gt;Coffee&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href="/?page=vibe.php"&gt;Vibe&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;a href="/?page=game.php"&gt;Game&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre>
+
+    <p>
+      This <code>?page=</code> parameter is a classic sign of <strong>Local File Inclusion (LFI)</strong>.
+      The application probably uses PHP's <code>include()</code> function without
+      proper sanitization.
+    </p>
+
+    <p>
+      Testing the parameter with <code>../../../../etc/passwd</code> confirms the vulnerability:
+    </p>
+
+    <!-- Screenshot 1: /etc/passwd -->
+    <figure style="margin: 1.5rem 0; border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
+      <img src="images/lofi/02-etc-passwd.png" alt="Browser output showing the contents of /etc/passwd" style="width: 100%; display: block;">
+      <figcaption style="padding: 0.5rem 1rem; font-size: 0.7rem; color: var(--muted); background: var(--surface); border-top: 1px solid var(--border);">
+        <em>Figure 1: The <code>/etc/passwd</code> file, LFI confirmed.</em>
+      </figcaption>
+    </figure>
+
+    <p>
+      Interestingly, trying to read <code>/flag.txt</code> directly does not work, which indicates a basic
+      filter for absolute paths. However, using <strong>relative traversal with <code>../</code></strong>
+      completely bypasses this check.
+    </p>
+
+    <h2 id="exploitation">// Exploitation: Reading the Flag</h2>
+
+    <p>
+      Since relative traversal works, we navigate up from the web root to read <code>/flag.txt</code>.
+    </p>
+
+    <!-- Screenshot 2: The Flag (Redacted) -->
+    <figure style="margin: 1.5rem 0; border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
+      <img src="images/lofi/03-flag.png" alt="Browser output showing the redacted flag" style="width: 100%; display: block;">
+      <figcaption style="padding: 0.5rem 1rem; font-size: 0.7rem; color: var(--muted); background: var(--surface); border-top: 1px solid var(--border);">
+        <em>Figure 2: The flag, redacted for this public write-up.</em>
+      </figcaption>
+    </figure>
+
+    <h2 id="flags">// Flags</h2>
+
+    <div class="flag-box">
+      <span class="flag-label">Flag — LFI Discovery</span>
+      <span class="flag-value">flag{e447...}</span>
+    </div>
+
+    <h2 id="takeaways">// Key Takeaways</h2>
+
+    <div class="takeaway">
+      <strong>Always check the page source first.</strong> The vulnerability was visible
+      in plain HTML; no directory enumeration was needed. This is a reminder to begin with
+      the simplest reconnaissance.
+    </div>
+
+    <div class="takeaway">
+      <strong>Absolute path filters are easy to bypass.</strong> The application checked
+      for a slash at the start, but <code>../</code> sequences got around it completely.
+      This is a common mistake in input sanitization.
+    </div>
+
+    <div class="takeaway">
+      <strong>LFI is more than just a file reader.</strong> While this room only required reading
+      a file, LFI vulnerabilities can often be combined with other techniques, like log poisoning,
+      to enable remote code execution. This makes them an important finding in any assessment.
+    </div>
+
+  </div>
+
+  <div class="wu-footer">
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="w1seguy.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">W1seGuy</span>
+    </a>
+  </div>
+
+</main>
+
+<script>
+  const headings = document.querySelectorAll('.wu-body h2[id]');
+  const ticks = document.querySelectorAll('.rail-tick[data-heading]');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        ticks.forEach(t => t.classList.toggle('active', t.dataset.heading === id));
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  headings.forEach(h => observer.observe(h));
+
+  ticks.forEach(tick => {
+    tick.addEventListener('click', () => {
+      const target = document.getElementById(tick.dataset.heading);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+
+</body>
+</html>
