@@ -13,9 +13,9 @@
     --surface2: #131820;
     --border:   #1c2330;
     --border2:  #26303f;
-    --green:    #00e87a;
-    --blue:     #7b9cff;
-    --orange:   #ff7b54;
+    --green:    #00ff88;
+    --orange:   #ff6b35;
+    --red:      #ff3b6f;
     --text:     #c5d4e8;
     --muted:    #48586e;
     --muted2:   #6b7f97;
@@ -37,7 +37,6 @@
 
   a { color: inherit; text-decoration: none; }
 
-  /* ─── Noise overlay ─── */
   body::after {
     content: '';
     position: fixed;
@@ -48,14 +47,12 @@
     z-index: 9999;
   }
 
-  /* ─── Layout ─── */
   .shell {
     display: grid;
     grid-template-columns: var(--rail) 1fr;
     min-height: 100vh;
   }
 
-  /* ─── Left rail ─── */
   .rail {
     position: fixed;
     top: 0; left: 0;
@@ -92,12 +89,10 @@
     letter-spacing: 0.1em;
   }
 
-  /* ─── Main ─── */
   main {
     margin-left: var(--rail);
   }
 
-  /* ─── Nav ─── */
   nav {
     position: sticky;
     top: 0;
@@ -154,7 +149,6 @@
     50% { opacity: 0.25; }
   }
 
-  /* ─── Header ─── */
   .page-header {
     padding: 4rem 3rem 2rem;
     border-bottom: 1px solid var(--border);
@@ -183,7 +177,6 @@
     margin-top: 0.75rem;
   }
 
-  /* ─── Write-ups grid ─── */
   .writeups-grid {
     padding: 2rem 3rem 4rem;
     display: grid;
@@ -246,8 +239,8 @@
   }
 
   .badge-easy   { color: var(--green);  border-color: var(--green);  }
-  .badge-medium { color: var(--blue);   border-color: var(--blue);   }
-  .badge-hard   { color: var(--orange); border-color: var(--orange); }
+  .badge-medium { color: var(--orange); border-color: var(--orange); }
+  .badge-hard   { color: var(--red);    border-color: var(--red);    }
 
   .wu-card-desc {
     font-size: 0.78rem;
@@ -282,7 +275,6 @@
     flex-shrink: 0;
   }
 
-  /* ─── Empty state ─── */
   .empty-state {
     grid-column: 1 / -1;
     padding: 4rem 2rem;
@@ -302,7 +294,6 @@
     margin-bottom: 0.5rem;
   }
 
-  /* ─── Footer ─── */
   footer {
     padding: 2rem 3rem;
     display: flex;
@@ -326,7 +317,6 @@
 
   .footer-links a:hover { color: var(--green); }
 
-  /* ─── Animations ─── */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(18px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -337,7 +327,6 @@
   .anim-d2 { animation-delay: 0.12s; }
   .anim-d3 { animation-delay: 0.2s; }
 
-  /* ─── Responsive ─── */
   @media (max-width: 768px) {
     :root { --rail: 0px; }
     .rail { display: none; }
@@ -386,6 +375,26 @@
 
   <!-- Write-ups grid -->
   <div class="writeups-grid">
+
+    <!-- Dodge -->
+    <a href="writeups/dodge.html" class="wu-card anim anim-d1">
+      <div class="wu-card-top">
+        <span class="wu-card-title">Dodge</span>
+        <span class="badge badge-medium">Medium</span>
+      </div>
+      <p class="wu-card-desc">Multi-layered web exploitation: virtual host enumeration, UFW firewall bypass, FTP to SSH key recovery, internal port forwarding, and `apt` privilege escalation.</p>
+      <div class="wu-card-footer">
+        <div class="wu-card-tags">
+          <span class="tag">vhost enumeration</span>
+          <span class="tag">UFW bypass</span>
+          <span class="tag">FTP</span>
+          <span class="tag">SSH</span>
+          <span class="tag">port forwarding</span>
+          <span class="tag">sudo apt</span>
+        </div>
+        <span class="wu-card-date">2026-07-15</span>
+      </div>
+    </a>
 
     <!-- Lo-Fi -->
     <a href="writeups/lofi.html" class="wu-card anim anim-d1">

