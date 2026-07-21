@@ -177,6 +177,40 @@
     margin-top: 0.75rem;
   }
 
+  .stats {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .stat-number {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .stat-number.green { color: var(--green); }
+  .stat-number.orange { color: var(--orange); }
+  .stat-number.red { color: var(--red); }
+
   .writeups-grid {
     padding: 2rem 3rem 4rem;
     display: grid;
@@ -333,6 +367,7 @@
     main { margin-left: 0; }
     nav { padding: 0 1.5rem; }
     .page-header { padding: 3rem 1.5rem 1.5rem; }
+    .stats { gap: 1.5rem; }
     .writeups-grid { padding: 1rem 1.5rem 3rem; }
     footer { padding: 1.5rem; flex-direction: column; gap: 1rem; text-align: center; }
     .footer-links { gap: 1.5rem; }
@@ -370,7 +405,26 @@
   <div class="page-header">
     <div class="page-eyebrow">// all write-ups</div>
     <h1 class="page-title">Write-ups</h1>
-    <p class="page-sub">Detailed walkthroughs from TryHackMe rooms, lab environments, and detection engineering challenges. <span style="color: var(--text);">27+</span> and counting.</p>
+    <p class="page-sub">Detailed walkthroughs from TryHackMe rooms, lab environments, and detection engineering challenges.</p>
+    
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-label">Total</span>
+        <span class="stat-number">5</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Easy</span>
+        <span class="stat-number green">2</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Medium</span>
+        <span class="stat-number orange">2</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Hard</span>
+        <span class="stat-number red">1</span>
+      </div>
+    </div>
   </div>
 
   <!-- Write-ups grid -->
@@ -394,7 +448,7 @@
         <span class="wu-card-date">2026-07-18</span>
       </div>
     </a>
-    
+
     <!-- Dodge -->
     <a href="writeups/dodge.html" class="wu-card anim anim-d1">
       <div class="wu-card-top">
@@ -429,7 +483,28 @@
           <span class="tag">curl</span>
           <span class="tag">proc filesystem</span>
         </div>
-        <span class="wu-card-date">2026-07-11</span>
+        <span class="wu-card-date">2026-07-13</span>
+      </div>
+    </a>
+
+    <!-- Mister Robot -->
+    <a href="writeups/mister-robot.html" class="wu-card anim anim-d1">
+      <div class="wu-card-top">
+        <span class="wu-card-title">Mr. Robot</span>
+        <span class="badge badge-medium">Medium</span>
+      </div>
+      <p class="wu-card-desc">Classic CTF inspired by the TV series. WordPress enumeration via Hydra, reverse shell through 404.php injection, hash cracking with John, and SUID nmap privilege escalation to root.</p>
+      <div class="wu-card-footer">
+        <div class="wu-card-tags">
+          <span class="tag">WordPress</span>
+          <span class="tag">Hydra</span>
+          <span class="tag">wpscan</span>
+          <span class="tag">reverse shell</span>
+          <span class="tag">John the Ripper</span>
+          <span class="tag">SUID</span>
+          <span class="tag">nmap privesc</span>
+        </div>
+        <span class="wu-card-date">2026-07-20</span>
       </div>
     </a>
 
@@ -447,7 +522,7 @@
           <span class="tag">python</span>
           <span class="tag">known-plaintext</span>
         </div>
-        <span class="wu-card-date">2026-07-07</span>
+        <span class="wu-card-date">2026-07-12</span>
       </div>
     </a>
 
