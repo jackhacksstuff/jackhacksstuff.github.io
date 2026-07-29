@@ -13,9 +13,9 @@
     --surface2: #131820;
     --border:   #1c2330;
     --border2:  #26303f;
-    --green:    #00e87a;
-    --blue:     #7b9cff;
-    --orange:   #ff7b54;
+    --green:    #00ff88;
+    --orange:   #ff6b35;
+    --red:      #ff3b6f;
     --text:     #c5d4e8;
     --muted:    #48586e;
     --muted2:   #6b7f97;
@@ -437,8 +437,8 @@
   }
 
   .badge-easy   { color: var(--green);  border-color: var(--green);  }
-  .badge-medium { color: var(--blue);   border-color: var(--blue);   }
-  .badge-hard   { color: var(--orange); border-color: var(--orange); }
+  .badge-medium { color: var(--orange); border-color: var(--orange); }
+  .badge-hard   { color: var(--red);    border-color: var(--red);    }
 
   .wu-mini-desc {
     font-size: 0.78rem;
@@ -664,57 +664,78 @@
       <a href="writeups.html" class="section-link">All write-ups →</a>
     </div>
 
-    <div class="writeups-mini">
+<div class="writeups-mini">
 
-      <a href="writeups/attacktive-directory.html" class="wu-mini">
-        <div class="wu-mini-top">
-          <span class="wu-mini-title">Attacktive Directory</span>
-          <span class="badge badge-medium">Medium</span>
-        </div>
-        <p class="wu-mini-desc">Active Directory enumeration and attack chain: Kerbrute user enumeration, AS-REP Roasting, SMB share enumeration, DCSync to dump NTDS.dit, and Pass-the-Hash with Evil-WinRM.</p>
-        <div class="wu-mini-footer">
-          <div class="wu-mini-tags">
-            <span class="tag">active directory</span>
-            <span class="tag">kerberos</span>
-            <span class="tag">pass-the-hash</span>
-          </div>
-          <span class="wu-mini-date">2026-07-22</span>
-        </div>
-      </a>
-
-      <a href="writeups/mister-robot.html" class="wu-mini">
-        <div class="wu-mini-top">
-          <span class="wu-mini-title">Mr. Robot</span>
-          <span class="badge badge-medium">Medium</span>
-        </div>
-        <p class="wu-mini-desc">Classic CTF inspired by the TV series. WordPress enumeration via Hydra, reverse shell through 404.php injection, hash cracking with John, and SUID nmap privilege escalation to root.</p>
-        <div class="wu-mini-footer">
-          <div class="wu-mini-tags">
-            <span class="tag">wordpress</span>
-            <span class="tag">reverse shell</span>
-            <span class="tag">nmap privesc</span>
-          </div>
-          <span class="wu-mini-date">2026-06-20</span>
-        </div>
-      </a>
-
-      <a href="writeups/daily-bugle.html class="wu-mini">
-        <div class="wu-mini-top">
-          <span class="wu-mini-title">Daily Bugle</span>
-          <span class="badge badge-hard">Hard</span>
-        </div>
-        <p class="wu-mini-desc">Joomla 3.7.0 exploitation via SQL injection (CVE-2017-8917), credential discovery, SSH lateral movement, and privilege escalation using `sudo yum` and GTFOBins.</p>
-        <div class="wu-mini-footer">
-          <div class="wu-mini-tags">
-            <span class="tag">joomla</span>
-            <span class="tag">sql injection</span>
-            <span class="tag">sudo yum</span>
-          </div>
-          <span class="wu-mini-date">2026-06-18</span>
-        </div>
-      </a>
-
+  <!-- Brainpan -->
+  <a href="writeups/brainpan.html" class="wu-mini">
+    <div class="wu-mini-top">
+      <span class="wu-mini-title">Brainpan 1</span>
+      <span class="badge badge-hard">Hard</span>
     </div>
+    <p class="wu-mini-desc">Manual buffer overflow exploitation of a Windows binary under Wine. Custom shellcode, reverse shell, and root via `anansi_util` and GTFOBins.</p>
+    <div class="wu-mini-footer">
+      <div class="wu-mini-tags">
+        <span class="tag">buffer overflow</span>
+        <span class="tag">Windows binary</span>
+        <span class="tag">Wine</span>
+        <span class="tag">GTFOBins</span>
+      </div>
+      <span class="wu-mini-date">2026-07-28</span>
+    </div>
+  </a>
+
+  <!-- Attacktive Directory -->
+  <a href="writeups/attacktive-directory.html" class="wu-mini">
+    <div class="wu-mini-top">
+      <span class="wu-mini-title">Attacktive Directory</span>
+      <span class="badge badge-medium">Medium</span>
+    </div>
+    <p class="wu-mini-desc">Active Directory enumeration and attack chain: Kerbrute user enumeration, AS-REP Roasting, SMB share enumeration, DCSync to dump NTDS.dit, and Pass-the-Hash with Evil-WinRM.</p>
+    <div class="wu-mini-footer">
+      <div class="wu-mini-tags">
+        <span class="tag">active directory</span>
+        <span class="tag">Kerberos</span>
+        <span class="tag">pass-the-hash</span>
+      </div>
+      <span class="wu-mini-date">2026-07-18</span>
+    </div>
+  </a>
+
+  <!-- Mr. Robot -->
+  <a href="writeups/mister-robot.html" class="wu-mini">
+    <div class="wu-mini-top">
+      <span class="wu-mini-title">Mr. Robot</span>
+      <span class="badge badge-medium">Medium</span>
+    </div>
+    <p class="wu-mini-desc">Classic CTF inspired by the TV series. WordPress enumeration via Hydra, reverse shell through 404.php injection, hash cracking with John, and SUID nmap privilege escalation to root.</p>
+    <div class="wu-mini-footer">
+      <div class="wu-mini-tags">
+        <span class="tag">WordPress</span>
+        <span class="tag">reverse shell</span>
+        <span class="tag">nmap privesc</span>
+      </div>
+      <span class="wu-mini-date">2026-07-14</span>
+    </div>
+  </a>
+
+  <!-- Daily Bugle -->
+  <a href="writeups/daily-bugle.html" class="wu-mini">
+    <div class="wu-mini-top">
+      <span class="wu-mini-title">Daily Bugle</span>
+      <span class="badge badge-hard">Hard</span>
+    </div>
+    <p class="wu-mini-desc">Joomla 3.7.0 exploitation via SQL injection (CVE-2017-8917), credential discovery, SSH lateral movement, and privilege escalation using `sudo yum` and GTFOBins.</p>
+    <div class="wu-mini-footer">
+      <div class="wu-mini-tags">
+        <span class="tag">Joomla</span>
+        <span class="tag">SQL injection</span>
+        <span class="tag">GTFObins</span>
+      </div>
+      <span class="wu-mini-date">2026-07-11</span>
+    </div>
+  </a>
+
+</div>
   </section>
 
   <!-- Current Focus -->

