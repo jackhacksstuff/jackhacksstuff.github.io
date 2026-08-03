@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pickle Rick | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-easy">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="foothold"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="privesc"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="flags"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="takeaways"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Easy</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge easy">Easy</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · web exploitation · Linux privesc</div>
+    <h1 class="wu-title">Pickle Rick</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-08-03</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent easy">Easy</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">3</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">web enumeration</span>
+    <span class="tool-tag">source code review</span>
+    <span class="tool-tag">command injection</span>
+    <span class="tool-tag">sudo misconfiguration</span>
+    <span class="tool-tag">privilege escalation</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>Pickle Rick</strong> is a TryHackMe room inspired by the <em>Rick and Morty</em> episode "Pickle Rick." The objective is to find three hidden "ingredients" within the system. This room shows how weak web security, like hardcoded credentials and poor input validation, along with a simple <strong>sudo misconfiguration</strong>, can lead to full system compromise.</p>
+    <p><a href="https://tryhackme.com/room/picklerick" target="_blank">View room on TryHackMe →</a></p>
+    <p><em>All flags and credentials have been redacted per TryHackMe's write-up policy.</em></p>
+
+    <h2 id="recon">// Reconnaissance</h2>
+
+    <h3>Enumeration & Source Code</h3>
+    <p>A standard <code>nmap</code> scan shows ports <strong>22 (SSH)</strong> and <strong>80 (HTTP)</strong> are open. When visiting the website, we see a basic Rick-themed page. The first step is <strong>view the page source</strong>.</p>
+
+    <pre>&lt;!--
+  Note to self, remember username!
+  Username: R1ckRul3s
+--&gt;</pre>
+
+    <p>The source comment reveals a hardcoded username, which is a significant clue.</p>
+
+    <h3>Directory Brute-Forcing</h3>
+    <p>Using <code>gobuster</code> to uncover hidden directories finds two important files:</p>
+
+    <pre>$ gobuster dir -u http://&lt;target_ip&gt; -w /usr/share/wordlists/dirb/common.txt -x php,txt
+/robots.txt           (Status: 200)
+/login.php            (Status: 200)</pre>
+
+    <p>Accessing <code>/robots.txt</code> uncovers a second credential:</p>
+
+    <pre>User-agent: *
+Disallow: [PASSWORD_REDACTED]</pre>
+
+    <p>
+      This is the password.
+    </p>
+
+    <h3>Login Page</h3>
+    <p>
+      Going to <code>/login.php</code> shows the login portal:
+    </p>
+
+    <figure style="margin: 1.5rem 0; border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
+      <img src="../images/pickle-rick/01-login-page.png" alt="The login.php page with username and password fields" style="width: 100%; display: block;">
+      <figcaption style="padding: 0.5rem 1rem; font-size: 0.7rem; color: var(--muted); background: var(--surface); border-top: 1px solid var(--border);">
+        <em>Figure 1: The login portal at <code>/login.php</code>.</em>
+      </figcaption>
+    </figure>
+
+    <p>
+      Using the credentials discovered earlier:
+    </p>
+
+    <ul>
+      <li><strong>Username:</strong> <code>R1ckRul3s</code></li>
+      <li><strong>Password:</strong> <code>[PASSWORD_REDACTED]</code></li>
+    </ul>
+
+    <h2 id="foothold">// Initial Foothold</h2>
+
+    <h3>Command Panel</h3>
+    <p>A successful login takes us to a web-based command panel. Here, we can run system commands as the <code>www-data</code> user.</p>
+
+    <figure style="margin: 1.5rem 0; border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
+      <img src="../images/pickle-rick/02-command-panel.png" alt="The Rick Portal command panel showing the ls output" style="width: 100%; display: block;">
+      <figcaption style="padding: 0.5rem 1rem; font-size: 0.7rem; color: var(--muted); background: var(--surface); border-top: 1px solid var(--border);">
+        <em>Figure 2: The command panel after login. Running <code>ls</code> reveals the first ingredient file.</em>
+      </figcaption>
+    </figure>
+
+    <p>When we run <code>ls</code>, it shows a file named <code>Sup3rS3cretPickl3Ingred.txt</code>. Trying to <code>cat</code> it doesn't work; the command is blocked. But we can use <code>less</code>:</p>
+
+    <pre>$ less Sup3rS3cretPickl3Ingred.txt
+[FLAG_REDACTED]</pre>
+
+    <h3>Second Ingredient</h3>
+    <p>The clue file (<code>clue.txt</code>) states: <em>"Look around the file system for the other ingredient."</em> Listing <code>/home/rick</code> shows a file named <code>second ingredients</code> (with a space).
+    </p>
+
+    <pre>$ ls /home/rick
+second ingredients</pre>
+
+    <p>Reading it with <code>less</code> (using quotes because of the space):</p>
+
+    <pre>$ less "/home/rick/second ingredients"
+[FLAG_REDACTED]</pre>
+
+    <h2 id="privesc">// Privilege Escalation</h2>
+
+    <h3>Checking Sudo Rights</h3>
+    <p>
+      The final ingredient is likely in the <code>/root</code> directory. To check if we can access it, run:
+    </p>
+
+    <pre>$ sudo -l
+Matching Defaults entries for www-data on ip-10-10-222-222:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User www-data may run the following commands on ip-10-10-222-222:
+    (ALL) NOPASSWD: ALL</pre>
+
+    <p><strong>Great.</strong> The <code>www-data</code> user can run <em>any</em> command as root without a password.</p>
+
+    <h3>Final Ingredient</h3>
+    <p>Using <code>sudo</code> to list and read the root directory:</p>
+
+    <pre>$ sudo ls /root
+3rd.txt
+$ sudo less /root/3rd.txt
+[FLAG_REDACTED]</pre>
+
+    <figure style="margin: 1.5rem 0; border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
+      <img src="../images/pickle-rick/03-final-proof.png" alt="Sudo less showing the final ingredient" style="width: 100%; display: block;">
+      <figcaption style="padding: 0.5rem 1rem; font-size: 0.7rem; color: var(--muted); background: var(--surface); border-top: 1px solid var(--border);">
+        <em>Figure 3: Using <code>sudo less</code> to read the final ingredient from <code>/root/3rd.txt</code>.</em>
+      </figcaption>
+    </figure>
+
+    <h2 id="takeaways">// Key Takeaways</h2>
+
+    <div class="takeaway">
+      <strong>Make it a habit to check the page source</strong> since credentials that have been hardcoded into HTML comments are more common than you'd think and represent the simplest means of access.
+    </div>
+
+    <div class="takeaway">
+      <strong>It's important to know your Linux commands;</strong> for instance, when <code>cat</code> doesn't work you can use alternatives such as <code>less</code>, <code>more</code>, <code>head</code>, and <code>tail</code>. This serves as a good illustration that "restrictions ≠ security."
+    </div>
+
+    <div class="takeaway">
+      <strong>Misconfigurations involving sudo are fatal,</strong> since allowing the <code>www-data</code> account to run <em>any</em> command as root represents a serious vulnerability. The <code>sudo -l</code> command should be your best ally when carrying out a Linux privilege escalation.
+    </div>
+
+    <div class="takeaway">
+      <strong>This room acts as a miniature kill chain</strong> since it includes enumeration, credential discovery, command injection, and privilege escalation, all of which are essential skills for junior penetration testers.
+    </div>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="mister-robot.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">Mr. Robot</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="w1seguy.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">W1seGuy</span>
+    </a>
+  </div>
+
+</main>
+
+<script>
+  const headings = document.querySelectorAll('.wu-body h2[id]');
+  const ticks = document.querySelectorAll('.rail-tick[data-heading]');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        ticks.forEach(t => t.classList.toggle('active', t.dataset.heading === id));
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  headings.forEach(h => observer.observe(h));
+
+  ticks.forEach(tick => {
+    tick.addEventListener('click', () => {
+      const target = document.getElementById(tick.dataset.heading);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+
+</body>
+</html>
