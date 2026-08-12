@@ -118,79 +118,80 @@
       <a href="writeups.html" class="section-link">All write-ups →</a>
     </div>
 
-<div class="writeups-mini">
+    <div class="writeups-mini">
 
-  <!-- Brainstorm -->
-  <a href="writeups/brainstorm.html" class="wu-mini">
-    <div class="wu-mini-top">
-      <span class="wu-mini-title">Brainstorm</span>
-      <span class="badge badge-medium">Medium</span>
-    </div>
-    <p class="wu-mini-desc">Stack-based buffer overflow on a Windows chat server. Full exploit chain: fuzzing, EIP offset discovery (2012), JMP ESP in essfunc.dll, reverse shell via msfvenom.</p>
-    <div class="wu-mini-footer">
-      <div class="wu-mini-tags">
-        <span class="tag">buffer overflow</span>
-        <span class="tag">Windows binary</span>
-        <span class="tag">Wine</span>
-        <span class="tag">msfvenom</span>
-        <span class="tag">reverse shell</span>
-      </div>
-      <span class="wu-mini-date">2026-08-06</span>
-    </div>
-  </a>
+      <!-- Heartbleed -->
+      <a href="writeups/heartbleed.html" class="wu-mini">
+        <div class="wu-mini-top">
+          <span class="wu-mini-title">Heartbleed</span>
+          <span class="badge badge-easy">Easy</span>
+        </div>
+        <p class="wu-mini-desc">Exploiting the OpenSSL Heartbleed bug (CVE-2014-0160) with Metasploit to leak server memory and extract the flag from HTTP POST data.</p>
+        <div class="wu-mini-footer">
+          <div class="wu-mini-tags">
+            <span class="tag">Heartbleed</span>
+            <span class="tag">CVE-2014-0160</span>
+            <span class="tag">Metasploit</span>
+            <span class="tag">memory leak</span>
+          </div>
+          <span class="wu-mini-date">2026-08-12</span>
+        </div>
+      </a>
 
-  <!-- Pickle Rick -->
-  <a href="writeups/pickle-rick.html" class="wu-mini">
-    <div class="wu-mini-top">
-      <span class="wu-mini-title">Pickle Rick</span>
-      <span class="badge badge-easy">Easy</span>
-    </div>
-    <p class="wu-mini-desc">A Rick and Morty-themed CTF covering web enumeration, command injection, and sudo misconfiguration. Perfect for practicing the basic pentesting kill chain.</p>
-    <div class="wu-mini-footer">
-      <div class="wu-mini-tags">
-        <span class="tag">source code review</span>
-        <span class="tag">sudo misconfiguration</span>
-      </div>
-      <span class="wu-card-date">2026-08-03</span>
-    </div>
-  </a>
+      <!-- Brainstorm -->
+      <a href="writeups/brainstorm.html" class="wu-mini">
+        <div class="wu-mini-top">
+          <span class="wu-mini-title">Brainstorm</span>
+          <span class="badge badge-medium">Medium</span>
+        </div>
+        <p class="wu-mini-desc">Stack-based buffer overflow on a Windows chat server. Full exploit chain: fuzzing, EIP offset discovery (2012), JMP ESP in essfunc.dll, reverse shell via msfvenom.</p>
+        <div class="wu-mini-footer">
+          <div class="wu-mini-tags">
+            <span class="tag">buffer overflow</span>
+            <span class="tag">Windows binary</span>
+            <span class="tag">Wine</span>
+            <span class="tag">msfvenom</span>
+            <span class="tag">reverse shell</span>
+          </div>
+          <span class="wu-mini-date">2026-08-06</span>
+        </div>
+      </a>
 
-  <!-- Brainpan -->
-  <a href="writeups/brainpan.html" class="wu-mini">
-    <div class="wu-mini-top">
-      <span class="wu-mini-title">Brainpan 1</span>
-      <span class="badge badge-hard">Hard</span>
-    </div>
-    <p class="wu-mini-desc">Manual buffer overflow exploitation of a Windows binary under Wine. Custom shellcode, reverse shell, and root via `anansi_util` and GTFOBins.</p>
-    <div class="wu-mini-footer">
-      <div class="wu-mini-tags">
-        <span class="tag">buffer overflow</span>
-        <span class="tag">Windows binary</span>
-        <span class="tag">Wine</span>
-        <span class="tag">GTFOBins</span>
-      </div>
-      <span class="wu-mini-date">2026-07-28</span>
-    </div>
-  </a>
+      <!-- Pickle Rick -->
+      <a href="writeups/pickle-rick.html" class="wu-mini">
+        <div class="wu-mini-top">
+          <span class="wu-mini-title">Pickle Rick</span>
+          <span class="badge badge-easy">Easy</span>
+        </div>
+        <p class="wu-mini-desc">A Rick and Morty-themed CTF covering web enumeration, command injection, and sudo misconfiguration. Perfect for practicing the basic pentesting kill chain.</p>
+        <div class="wu-mini-footer">
+          <div class="wu-mini-tags">
+            <span class="tag">source code review</span>
+            <span class="tag">sudo misconfiguration</span>
+          </div>
+          <span class="wu-card-date">2026-08-03</span>
+        </div>
+      </a>
 
-  <!-- Attacktive Directory -->
-  <a href="writeups/attacktive-directory.html" class="wu-mini">
-    <div class="wu-mini-top">
-      <span class="wu-mini-title">Attacktive Directory</span>
-      <span class="badge badge-medium">Medium</span>
-    </div>
-    <p class="wu-mini-desc">Active Directory enumeration and attack chain: Kerbrute user enumeration, AS-REP Roasting, SMB share enumeration, DCSync to dump NTDS.dit, and Pass-the-Hash with Evil-WinRM.</p>
-    <div class="wu-mini-footer">
-      <div class="wu-mini-tags">
-        <span class="tag">active directory</span>
-        <span class="tag">Kerberos</span>
-        <span class="tag">pass-the-hash</span>
-      </div>
-      <span class="wu-mini-date">2026-07-18</span>
-    </div>
-  </a>
+      <!-- Brainpan -->
+      <a href="writeups/brainpan.html" class="wu-mini">
+        <div class="wu-mini-top">
+          <span class="wu-mini-title">Brainpan 1</span>
+          <span class="badge badge-hard">Hard</span>
+        </div>
+        <p class="wu-mini-desc">Manual buffer overflow exploitation of a Windows binary under Wine. Custom shellcode, reverse shell, and root via `anansi_util` and GTFOBins.</p>
+        <div class="wu-mini-footer">
+          <div class="wu-mini-tags">
+            <span class="tag">buffer overflow</span>
+            <span class="tag">Windows binary</span>
+            <span class="tag">Wine</span>
+            <span class="tag">GTFOBins</span>
+          </div>
+          <span class="wu-mini-date">2026-07-28</span>
+        </div>
+      </a>
 
-</div>
+    </div>
   </section>
 
   <!-- Current Focus -->
@@ -229,24 +230,6 @@
   </footer>
 </main>
 
-<script>
-  const sections = ['hero', 'about', 'writeups', 'focus'];
-  const railTicks = document.querySelectorAll('.rail-tick[data-section]');
-  const railLabels = document.querySelectorAll('.rail-section-label[data-section]');
-
-  function setActive(id) {
-    railTicks.forEach(t => t.classList.toggle('active', t.dataset.section === id));
-    railLabels.forEach(l => l.classList.toggle('active', l.dataset.section === id));
-  }
-
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); });
-  }, { threshold: 0.3 });
-
-  sections.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) observer.observe(el);
-  });
-</script>
+<script src="js/script.js"></script>
 </body>
 </html>

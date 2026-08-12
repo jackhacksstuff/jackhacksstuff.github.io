@@ -222,28 +222,7 @@ $ sudo less /root/3rd.txt
 
 </main>
 
-<script>
-  const headings = document.querySelectorAll('.wu-body h2[id]');
-  const ticks = document.querySelectorAll('.rail-tick[data-heading]');
-
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const id = entry.target.id;
-        ticks.forEach(t => t.classList.toggle('active', t.dataset.heading === id));
-      }
-    });
-  }, { rootMargin: '-30% 0px -60% 0px' });
-
-  headings.forEach(h => observer.observe(h));
-
-  ticks.forEach(tick => {
-    tick.addEventListener('click', () => {
-      const target = document.getElementById(tick.dataset.heading);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  });
-</script>
+<script src="../js/script.js"></script>
 
 </body>
 </html>

