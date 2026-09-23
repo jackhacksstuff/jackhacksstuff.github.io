@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Net Sec Challenge | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-easy">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="ftp"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="ids"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="verdict"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Easy</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge easy">Easy</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · network security · Nmap evasion</div>
+    <h1 class="wu-title">Net Sec Challenge</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-09-21</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent easy">Easy</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">4</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">hydra</span>
+    <span class="tool-tag">ftp</span>
+    <span class="tool-tag">netcat</span>
+    <span class="tool-tag">service fingerprinting</span>
+    <span class="tool-tag">ids evasion</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>Net Sec Challenge</strong> is a TryHackMe room focused on network enumeration and Nmap fundamentals. The target exposes a handful of services — SSH, HTTP, SMB, an FTP server on a nonstandard port, and a small web challenge on port 8081 — and the room walks through identifying them, fingerprinting versions, extracting flags hidden in service banners, and finally evading a simulated IDS while scanning the host.</p>
+    <p><a href="https://tryhackme.com/room/netsecchallenge" target="_blank">View room on TryHackMe →</a></p>
+    <p><em>Flags and sensitive data have been redacted per TryHackMe's write-up policy.</em></p>
+
+    <h2 id="recon">// Reconnaissance</h2>
+
+    <h3>Port Scanning</h3>
+    <p>A single full-port scan with service detection and default scripts answers most of the room's questions at once:</p>
+
+    <pre>$ nmap -sC -sV -p- &lt;target_ip&gt;
+
+PORT      STATE SERVICE     VERSION
+22/tcp    open  ssh         (protocol 2.0)
+80/tcp    open  http        THM{...}
+139/tcp   open  netbios-ssn Samba smbd 4.6.2
+445/tcp   open  netbios-ssn Samba smbd 4.6.2
+8081/tcp  open  http        Node.js (Express middleware)
+10001/tcp open  scp-config?
+10121/tcp open  ftp         vsftpd 3.0.5</pre>
+
+    <p>The room's first three questions are answered directly by this output:</p>
+    <ul>
+      <li><strong>Highest open port under 10,000</strong> — <code>8081</code></li>
+      <li><strong>Open port above 10,100</strong> — <code>10121</code></li>
+      <li><strong>Number of open TCP ports</strong> — 7</li>
+    </ul>
+
+    <h3>Service Fingerprinting</h3>
+    <p>Two flags are hidden in service banners that Nmap's fingerprinting picks up automatically. The SSH banner carries a flag in its version string, and the HTTP server header carries another:</p>
+
+    <pre>$ nc &lt;target_ip&gt; 22
+SSH-2.0-OpenSSH_8.2p1 THM{...}
+
+$ curl -I http://&lt;target_ip&gt;/
+Server: THM{...}</pre>
+
+    <p>Port 80's service version value — the string Nmap reports in the VERSION column — answers the fourth question, and the banner flag answers the fifth. On the nonstandard FTP port, <code>-sV</code> reports the server version as <code>vsftpd 3.0.5</code>, which answers the sixth.</p>
+
+    <div class="takeaway" style="margin: 1.5rem 0;">
+      <strong>Pro tip:</strong> <code>nmap -sV</code> alone often reveals more than people expect — banners, version strings, and in this room, two of the flags. Always read the full service scan output before reaching for another tool.
+    </div>
+
+    <h2 id="ftp">// FTP Access</h2>
+
+    <h3>Brute-Forcing Credentials</h3>
+    <p>The room provides two usernames gathered through "social engineering": <code>eddie</code> and <code>quinn</code>. I created a small username file with <code>nano</code> and pointed Hydra at the FTP service on port 10121:</p>
+
+    <pre>$ nano users.txt
+eddie
+quinn
+
+$ hydra -L users.txt -P /usr/share/wordlists/rockyou.txt ftp://&lt;target_ip&gt;:10121
+
+[10121][ftp] host: &lt;target_ip&gt;   login: eddie   password: &lt;redacted&gt;
+[10121][ftp] host: &lt;target_ip&gt;   login: quinn   password: &lt;redacted&gt;</pre>
+
+    <p>Both accounts use weak, dictionary passwords, which is exactly why the room supplies a short username list — Hydra only has to try two logins per password rather than brute-forcing usernames and passwords together.</p>
+
+    <h3>Retrieving the Flag</h3>
+    <p>Logging in as <code>quinn</code> reveals a single file in the FTP root:</p>
+
+    <pre>$ ftp &lt;target_ip&gt; 10121
+Name: quinn
+Password: &lt;redacted&gt;
+230 Login successful.
+
+ftp&gt; ls
+-rw-rw-r--    1 1002  1002    22 Feb 24  2026 ftp_flag.txt
+
+ftp&gt; get ftp_flag.txt
+ftp&gt; quit
+
+$ cat ftp_flag.txt
+THM{...}</pre>
+
+    <p>That answers the seventh question. Note that the FTP server is listening on a nonstandard port — a good reminder to scan the full range rather than the default top 1000.</p>
+
+    <h2 id="ids">// IDS Evasion</h2>
+
+    <p>The final question points at the web service on port 8081, which presents a small challenge: scan the host "as covertly as possible" without being detected by the IDS, with a live percentage meter showing the chance of detection.</p>
+
+    <p>The intended technique is a <strong>NULL scan</strong> — a TCP scan that sets no flags at all:</p>
+
+    <pre>$ nmap -sN -Pn &lt;target_ip&gt;
+
+PORT      STATE         SERVICE
+22/tcp    open|filtered ssh
+80/tcp    open|filtered http
+139/tcp   open|filtered netbios-ssn
+445/tcp   open|filtered microsoft-ds
+8081/tcp  open|filtered blackice-icecap
+10001/tcp open|filtered scp-config
+
+Nmap done: 1 IP address (1 host up) scanned in 1.27 seconds</pre>
+
+    <p>The page immediately displayed the success message with the flag, answering the eighth question. Interestingly, <code>-Pn</code> turned out to be unnecessary — the NULL scan works on its own. Other write-ups confirm that <strong>FIN (<code>-sF</code>)</strong> and <strong>Xmas (<code>-sX</code>)</strong> scans also work, since they exploit the same RFC 793 behaviour.</p>
+
+    <div class="flag-box">
+      <span class="flag-label">Web Challenge Flag</span>
+      <span class="flag-value">THM{...}</span>
+    </div>
+
+    <div class="note">
+      <strong>If the scan doesn't register:</strong> a few people report that NULL scans from a local Kali box don't always trigger the challenge. Running the same command from TryHackMe's AttackBox resolves it.
+    </div>
+
+    <p>RFC 793 states that a closed port should respond to a packet with no flags set by sending an RST, while an open port should ignore it. Because nothing is set and the responses are silent, a NULL scan doesn't resemble a normal connection attempt — it looks like malformed or idle traffic. That's the whole trick, and it's why the port states come back ambiguous (<code>open|filtered</code>) rather than definitive.</p>
+
+    <p>The same family includes the Xmas scan (<code>-sX</code>, FIN+PSH+URG), the FIN scan (<code>-sF</code>), and the Maimon scan (<code>-sM</code>). All exploit the same RFC behaviour and are worth having in your toolkit.</p>
+
+    <h2 id="verdict">// Verdict</h2>
+    <p>A genuinely fun room that rewards understanding <em>how</em> Nmap's scan types work rather than how to tune a timing template. The banner flags are easy points, the FTP brute-force is standard, and the IDS puzzle is the real test — it's the one room in this set where reading the client-side code paid off more than any tooling.</p>
+    <p style="color: var(--text); font-size: 0.8rem;">
+      <span style="color: var(--room-accent, var(--accent));">→</span> 7/10 — recommended for anyone getting to grips with Nmap flags.
+    </p>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="mister-robot.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">Mr. Robot</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="pickle-rick.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">Pickle Rick</span>
+    </a>
+  </div>
+
+</main>
+
+<script src="../js/script.js"></script>
+
+</body>
+</html>

