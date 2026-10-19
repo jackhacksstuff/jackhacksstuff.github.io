@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jurassic Park | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-hard">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="sqli"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="foothold"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="privesc"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="verdict"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Hard</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge hard">Hard</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · Linux · SQLi → SSH → GTFOBins scp</div>
+    <h1 class="wu-title">Jurassic Park</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-09-24</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent hard">Hard</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">5</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">gobuster</span>
+    <span class="tool-tag">UNION SQLi</span>
+    <span class="tool-tag">information_schema</span>
+    <span class="tool-tag">ssh</span>
+    <span class="tool-tag">GTFOBins</span>
+    <span class="tool-tag">scp privesc</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>Jurassic Park</strong> is a Linux box themed around a dinosaur-park gift shop. The path starts with a numeric <code>id</code> parameter on <code>item.php</code>, runs through a hand-rolled <strong>UNION-based SQL injection</strong> into the <code>users</code> table, cracks Dennis's password, and pivots via SSH. Post-foothold, the flags hide in <code>.viminfo</code> and <code>.bash_history</code>, and root falls to a textbook <strong>GTFOBins <code>scp</code></strong> escalation.</p>
+    <p><a href="https://tryhackme.com/room/jurassicpark" target="_blank">View room on TryHackMe →</a></p>
+    <p><em>Flags and puzzle answers have been redacted per TryHackMe's write-up policy. Credentials are shown where they're part of the learning path.</em></p>
+
+    <!-- ─── SCREENSHOT 1 ─────────────────────────────────────────
+         Capture: the shop item page (item.php?id=1) with the
+         URL bar visible showing the numeric id parameter.
+         Save to: ../images/jurassicpark/item-page.png
+    ──────────────────────────────────────────────────────────── -->
+    <figure class="screenshot">
+      <img src="../images/jurassicpark/item-page.png" alt="Jurassic Park gift shop item page with numeric id parameter in the URL" />
+      <figcaption>Figure 1: The item page — the numeric <code>id</code> parameter is a textbook SQLi candidate.</figcaption>
+    </figure>
+
+    <h2 id="recon">// Reconnaissance</h2>
+
+    <h3>Port Scanning</h3>
+    <p>A standard script and version scan exposes two services — SSH and HTTP:</p>
+
+    <pre>$ nmap -sC -sV &lt;target_ip&gt;
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.2p2 Ubuntu
+80/tcp open  http    Apache httpd 2.4.18</pre>
+
+    <h3>Web Enumeration</h3>
+    <p>Port 80 serves the gift shop. Directory brute-forcing turns up the usual static assets plus a handful of PHP pages:</p>
+
+    <pre>$ gobuster dir -u http://&lt;target_ip&gt; -w /usr/share/wordlists/dirb/common.txt
+
+/assets
+/images
+/admin.php
+/item.php
+/login.php
+...</pre>
+
+    <p>Browsing to <code>item.php?id=1</code> returns a product page. That numeric <code>id</code> is the classic sign of a SQL injection candidate — the application is almost certainly passing it straight into a query.</p>
+
+    <h2 id="sqli">// SQL Injection — Dumping the Users Table</h2>
+
+    <p>A single quote on the parameter confirms the injection:</p>
+
+    <pre>http://&lt;target_ip&gt;/item.php?id=1'</pre>
+
+    <p>A SQL error (or a blanked page) is the tell. From there, the method is: find the column count, find which columns are reflected on the page, then use those reflected columns to pull data out of <code>information_schema</code> before dumping the table that matters.</p>
+
+    <h3>Column Count and Reflected Columns</h3>
+    <p>Incrementing an <code>ORDER BY</code> until the page breaks gives the column count; a <code>UNION SELECT 1,2,3,4,5</code> then shows which positions render on the page. Both land on <strong>five columns</strong>, and the reflected positions are enough to work with.</p>
+
+    <pre>?id=5 UNION SELECT 1,2,3,4,5
+?id=5 UNION SELECT 1,database(),version(),4,5</pre>
+
+    <p>The schema is <code>park</code> and the backend is MySQL <code>5.7.25-0ubuntu0.16.04.2</code> — a useful detail later, since that build ties the box to Ubuntu 16.04.</p>
+
+    <!-- ─── SCREENSHOT 2 ─────────────────────────────────────────
+         Capture: browser showing the UNION SELECT output with
+         database() / version() rendered on the page.
+         Save to: ../images/jurassicpark/union-output.png
+    ──────────────────────────────────────────────────────────── -->
+    <figure class="screenshot">
+      <img src="../images/jurassicpark/union-output.png" alt="UNION SELECT output rendering database name and version on the item page" />
+      <figcaption>Figure 2: The <code>UNION SELECT</code> output — reflected columns make enumeration straightforward.</figcaption>
+    </figure>
+
+    <h3>Enumerating the Schema</h3>
+    <p>With reflected columns in hand, <code>information_schema</code> does the rest — first the tables, then the columns of the interesting one:</p>
+
+    <pre>?id=1 UNION SELECT 1,2,3,GROUP_CONCAT(table_name),5 FROM information_schema.tables WHERE table_schema=database()
+
+?id=1 UNION SELECT 1,2,3,GROUP_CONCAT(column_name),5 FROM information_schema.columns WHERE table_schema=database() AND table_name="users"</pre>
+
+    <p>This surfaces a <code>users</code> table with a plaintext <code>password</code> column. A final <code>UNION</code> dumps it:</p>
+
+    <pre>?id=1 UNION SELECT 1,2,3,password,5 FROM users</pre>
+
+    <p>The table holds a single account — <strong>Dennis</strong> — and the dumped password is <code>ih8dinos</code>. No cracking needed here; the application stores credentials in cleartext. The username is also hinted at on the <code>id=5</code> page, so pairing the two is enough to move to SSH.</p>
+
+    <h2 id="foothold">// Foothold</h2>
+
+    <p>Log in as Dennis with the dumped password:</p>
+
+    <pre>$ ssh dennis@&lt;target_ip&gt;
+dennis@&lt;target_ip&gt;'s password: ih8dinos
+dennis@jurassicpark:~$</pre>
+
+    <h3>Reading the Flags from Home-Directory Artefacts</h3>
+    <p>The first flag sits plainly in Dennis's home directory, but the other two are hidden in the sort of files people forget persist between sessions. <code>.viminfo</code> records the paths of files opened in Vim, which points straight at a flag outside the home directory:</p>
+
+    <pre>$ ls
+flag1.txt
+$ cat flag1.txt
+[redacted]
+
+$ grep -i flag .viminfo
+/boot/grub/fonts/flagtwo.txt
+$ cat /boot/grub/fonts/flagtwo.txt
+[redacted]</pre>
+
+    <p>The third flag is visible in Dennis's command history — he read it in a previous session and the shell remembered:</p>
+
+    <pre>$ cat .bash_history
+[redacted]</pre>
+
+    <p>There's a fourth flag referenced in <code>.viminfo</code> — <code>/tmp/flagfour.txt</code> — but the path is empty. It's a deliberate dead end: the room states there is no fourth flag, and the evidence agrees.</p>
+
+    <div class="dead-end">
+      <code>.viminfo</code> references <code>/tmp/flagfour.txt</code>, but the file does not exist. There is no fourth flag.
+    </div>
+
+    <div class="note">
+      <strong>Why this works:</strong> <code>.viminfo</code> persists the paths of files opened in Vim, and <code>.bash_history</code> persists commands run in the shell. Both survive between sessions and are a standard post-foothold check — a lot of "hidden" flags live in exactly these two files.
+    </div>
+
+    <h2 id="privesc">// Privilege Escalation — scp (GTFOBins)</h2>
+
+    <p>A quick <code>sudo -l</code> shows Dennis can run <code>scp</code> as root without a password:</p>
+
+    <pre>$ sudo -l
+User dennis may run the following commands on jurassicpark:
+    (ALL) NOPASSWD: /usr/bin/scp</pre>
+
+    <p>This is a known GTFOBins entry. <code>scp</code> accepts <code>-S</code> to specify the program used for the SSH connection; pointing that at a script that spawns a shell, invoked through <code>sudo scp</code>, runs the shell as root:</p>
+
+    <pre>$ TF=$(mktemp)
+$ echo 'sh 0&lt;&amp;2 1&gt;&amp;2' &gt; $TF
+$ chmod +x "$TF"
+$ sudo scp -S $TF x y:
+# id
+uid=0(root) gid=0(root) groups=0(root)</pre>
+
+    <p>From the root shell, the fifth flag:</p>
+
+    <pre># cat /root/flag5.txt
+[redacted]</pre>
+
+    <div class="note">
+      <strong>Why this works:</strong> <code>scp -S</code> lets you substitute the program used for the SSH transport. Pointing it at a script that execs a shell, and invoking the whole thing via <code>sudo scp</code>, means that shell runs as root. It's the same family of trick as the <code>yum</code> plugin escalation on Daily Bugle — <code>sudo -l</code> is always the first post-foothold check for a reason.
+    </div>
+
+    <h2 id="verdict">// Verdict</h2>
+    <p>Jurassic Park is a clean, linear SQLi-to-root box. The injection is the star — hand-rolling the <code>UNION</code> queries teaches you more about <code>information_schema</code> than running sqlmap would — but the interesting parts are the post-foothold enumeration (<code>.viminfo</code>, <code>.bash_history</code>, and the deliberate fourth-flag dead end) and the <code>scp</code> GTFOBins escalation. The dead end is a nice touch: it rewards reading the evidence instead of trusting the hint.</p>
+    <p style="color: var(--text); font-size: 0.8rem;">
+      <span style="color: var(--room-accent, var(--accent));">→</span> 7/10 — recommended as a first "real" SQLi box. The injection is straightforward, so the learning value is concentrated in the pivot and privesc.
+    </p>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="goldeneye.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">GoldenEye</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="mister-robot.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">Mr. Robot</span>
+    </a>
+  </div>
+
+</main>
+
+<script src="../js/script.js"></script>
+
+</body>
+</html>
