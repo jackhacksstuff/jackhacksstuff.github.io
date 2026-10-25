@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HeartBleed | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-easy">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="background"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="exploit"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="flag"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="verdict"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Easy</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge easy">Easy</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · Linux · CVE-2014-0160 · Memory Disclosure</div>
+    <h1 class="wu-title">HeartBleed</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-09-28</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent easy">Easy</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">1</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">ssl-heartbleed</span>
+    <span class="tool-tag">metasploit</span>
+    <span class="tool-tag">CVE-2014-0160</span>
+    <span class="tool-tag">memory forensics</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>HeartBleed</strong> is a single-flag room built around <strong>CVE-2014-0160</strong>, the OpenSSL bug that broke the internet in 2014. The entire objective is to confirm the vulnerable service and pull the flag out of leaked server memory. It's a short box, but the vulnerability behind it is one of the most consequential in modern computing, which makes it a great one to understand properly rather than just run a scanner against.</p>
+    <p><a href="https://tryhackme.com/room/heartbleed" target="_blank">View room on TryHackMe →</a></p>
+    <p><em>Flags and puzzle answers have been redacted per TryHackMe's write-up policy. Technique and tooling are shown in full.</em></p>
+
+    <h2 id="background">// Background: What Is HeartBleed?</h2>
+    <p>HeartBleed lives in the TLS <strong>Heartbeat extension</strong> (RFC 6520), which lets a client and server check that a connection is still alive without renegotiating the whole session. A heartbeat request carries a small payload and a <em>claimed length</em> field describing how big that payload is.</p>
+    <p>The flaw: vulnerable OpenSSL versions trusted the claimed length without checking it against the actual payload size. Send a heartbeat claiming 64KB while supplying 1 byte, and the server reads 64KB starting just past your payload straight out of its own process memory and echoes it back. That's it. Just a slow drip of whatever happens to be in memory: session cookies, credentials, form submissions, and occasionally private key material.</p>
+    <p>Affected: OpenSSL <strong>1.0.1 through 1.0.1f</strong> (and 1.0.2-beta). Patched in <strong>1.0.1g</strong>. The bug was independently discovered by Neel Mehta of Google and by Codenomicon, who coined the name and launched the now-famous logo.</p>
+
+    <h2 id="recon">// Reconnaissance</h2>
+
+    <h3>Confirming the Vulnerability</h3>
+    <p>There's no need for a full port sweep here. The target is a web service, so a targeted Nmap script against 443 is the fastest confirmation:</p>
+
+    <pre>$ nmap -p 443 --script ssl-heartbleed &lt;target_ip&gt;
+
+PORT    STATE SERVICE
+443/tcp open  https
+| ssl-heartbleed: 
+|   VULNERABLE:
+|   The Heartbleed Bug is a serious vulnerability in the popular OpenSSL cryptographic software library...
+|     State: VULNERABLE
+|     Risk factor: High
+|_      ...</pre>
+
+    <p>The <code>VULNERABLE</code> state confirms the server is running an affected OpenSSL build and is responding to malformed heartbeats. No exploitation has happened yet, the script just probes and reports.</p>
+
+    <h2 id="exploit">// Exploitation: Leaking Memory with Metasploit</h2>
+
+    <p>You can hand-roll a heartbeat packet in Python or Scapy, but Metasploit ships a dedicated auxiliary module that handles the malformed requests and dumps the leaked memory for you. For a learning box, that's the right tool. It keeps the focus on <em>interpreting</em> the leak rather than reimplementing the TLS handshake.</p>
+
+    <pre>$ msfconsole
+msf6 &gt; use auxiliary/scanner/ssl/openssl_heartbleed
+msf6 auxiliary(scanner/ssl/openssl_heartbleed) &gt; set RHOSTS &lt;target_ip&gt;
+msf6 auxiliary(scanner/ssl/openssl_heartbleed) &gt; set VERBOSE true
+msf6 auxiliary(scanner/ssl/openssl_heartbleed) &gt; run</pre>
+
+    <p><code>VERBOSE true</code> is the important setting. Without it you get a "vulnerable" confirmation but not the leaked bytes printed to the console. With it, you get a stream of mostly binary noise, punctuated by readable chunks of memory.</p>
+
+    <div class="note">
+      <strong>Why this is probabilistic:</strong> each heartbeat request over-reads a different region of process memory. The flag won't necessarily be in the first dump. Run the module a few times and watch the console output until a readable chunk surfaces. That's what this one took: a handful of runs before the flag appeared.
+    </div>
+
+    <h2 id="flag">// Finding the Flag</h2>
+
+    <p>Buried in the leaked memory was a full HTTP request body from a previous visitor to the application, including form fields and, sitting right in the middle of them, the flag. It showed up in the Metasploit output as readable text among the binary noise:</p>
+
+    <pre>Content-Length: 75
+Content-Type: application/x-www-form-urlencoded
+
+user_name=...&amp;user_email=...&amp;user_message=[redacted]</pre>
+
+    <p>The flag is in the standard <code>THM{...}</code> format, embedded inside a URL-encoded form body. That's the whole room.</p>
+
+    <h3>Other Artefacts in the Leak</h3>
+    <p>The dump also contained chunks of the server's <strong>X.509 certificate</strong>, <code>C=UK, L=London, O=TryHackMe, CN=localhost</code>, with a validity window from 2019 to 2020. That's the public cert, so not sensitive on its own, but it's a useful reminder of what HeartBleed <em>can</em> expose. With enough requests you can leak private key material, which is exactly why the bug was treated as a catastrophe for real-world TLS services.</p>
+
+    <div class="note">
+      <strong>Why this works:</strong> HeartBleed is a <em>read</em> primitive, not a code-execution primitive. You don't get a shell from it, you get whatever the process has recently handled. On a real target that's session tokens and credentials; on this box it's a deliberately planted form submission. The lesson generalises: memory disclosure bugs turn unrelated users' data into an attacker's data.
+    </div>
+
+    <h2 id="verdict">// Verdict</h2>
+    <p>HeartBleed is a very short box: recon, one Metasploit module, and reading the output. As a CTF it's almost trivially easy. As a <em>lesson</em>, though, it's worth doing properly: the value is in understanding the heartbeat over-read, why the leak is probabilistic, and what a memory-disclosure bug actually hands an attacker. If you've ever wondered why "just patch OpenSSL" became a company-wide emergency in 2014, this room is the hands-on version of that answer.</p>
+    <p style="color: var(--text); font-size: 0.8rem;">
+      <span style="color: var(--room-accent, var(--accent));">→</span> 6/10 — mechanically easy, historically important. Do it once to internalise CVE-2014-0160, then move on.
+    </p>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="goldeneye.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">GoldenEye</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="jurassicpark.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">Jurassic Park</span>
+    </a>
+  </div>
+
+</main>
+
+<script src="../js/script.js"></script>
+
+</body>
+</html>
