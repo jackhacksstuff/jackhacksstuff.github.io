@@ -98,25 +98,6 @@
       </div>
     </a>
 
-    <!-- GamingServer -->
-    <a href="writeups/gamingserver.html" class="wu-card anim anim-d1">
-      <div class="wu-card-top">
-        <span class="wu-card-title">GamingServer</span>
-        <span class="badge badge-easy">Easy</span>
-      </div>
-      <p class="wu-card-desc">Web enumeration reveals an encrypted SSH key and a password wordlist. Crack the key with John the Ripper, gain access as `john`, then escalate to root via LXD container abuse. A clean introduction to the LXD privilege escalation technique.</p>
-      <div class="wu-card-footer">
-        <div class="wu-card-tags">
-          <span class="tag">web enumeration</span>
-          <span class="tag">SSH key cracking</span>
-          <span class="tag">John the Ripper</span>
-          <span class="tag">LXD</span>
-          <span class="tag">privilege escalation</span>
-        </div>
-        <span class="wu-card-date">2026-08-12</span>
-      </div>
-    </a>
-
     <!-- GoldenEye -->
     <a href="writeups/goldeneye.html" class="wu-card anim anim-d1">
       <div class="wu-card-top">
@@ -135,10 +116,10 @@
       </div>
     </a>
 
-    <!-- HeartBleed -->
+    <!-- Heartbleed -->
     <a href="writeups/heartbleed.html" class="wu-card anim anim-d1">
       <div class="wu-card-top">
-        <span class="wu-card-title">HeartBleed</span>
+        <span class="wu-card-title">Heartbleed</span>
         <span class="badge badge-easy">Easy</span>
       </div>
       <p class="wu-card-desc">Exploitation of CVE-2014-0160, the OpenSSL heartbeat over-read that leaked memory from half the internet in 2014. Confirm the vulnerable service with Nmap, pull server memory with Metasploit's heartbleed module, and recover the flag from a previous visitor's form submission still resident in memory.</p>
@@ -246,6 +227,25 @@
           <span class="tag">sudo privesc</span>
         </div>
         <span class="wu-card-date">2026-08-20</span>
+      </div>
+    </a>
+
+    <a href="writeups/toolsrus.html" class="wu-card anim anim-d1">
+      <div class="wu-card-top">
+        <span class="wu-card-title">ToolsRUs</span>
+        <span class="badge badge-easy">Easy</span>
+      </div>
+      <p class="wu-card-desc">A classic web-to-root chain. Directory brute-forcing surfaces a basic-auth protected directory, Hydra cracks the weak password, and an exposed Tomcat manager on port 1234 falls to Metasploit's WAR upload exploit. The kicker: Tomcat was running as root, so the web RCE is instantly a full system compromise — a textbook case of why service accounts matter.</p>
+      <div class="wu-card-footer">
+        <div class="wu-card-tags">
+          <span class="tag">gobuster</span>
+          <span class="tag">hydra</span>
+          <span class="tag">nikto</span>
+          <span class="tag">metasploit</span>
+          <span class="tag">Tomcat manager</span>
+          <span class="tag">misconfiguration</span>
+        </div>
+        <span class="wu-card-date">2026-09-29</span>
       </div>
     </a>
 

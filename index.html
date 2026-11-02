@@ -120,7 +120,25 @@
 
     <div class="writeups-mini">
 
-      <!-- HeartBleed -->
+      <!-- ToolsRUs -->
+      <a href="writeups/toolsrus.html" class="wu-mini">
+        <div class="wu-mini-top">
+          <span class="wu-mini-title">ToolsRUs</span>
+          <span class="badge badge-easy">Easy</span>
+        </div>
+        <p class="wu-mini-desc">Tomcat manager exposed on a non-standard port with weak basic-auth credentials. Gobuster finds the hidden directory, Hydra cracks Bob's password, and Metasploit's <code>tomcat_mgr_upload</code> deploys a WAR for RCE. Tomcat running as root means the shell lands straight at the top — no privesc needed.</p>
+        <div class="wu-mini-footer">
+          <div class="wu-mini-tags">
+            <span class="tag">basic auth</span>
+            <span class="tag">hydra</span>
+            <span class="tag">Tomcat manager</span>
+            <span class="tag">WAR upload</span>
+          </div>
+          <span class="wu-mini-date">2026-09-29</span>
+        </div>
+      </a>
+
+      <!-- Heartbleed -->
       <a href="writeups/heartbleed.html" class="wu-mini">
         <div class="wu-mini-top">
           <span class="wu-mini-title">Heartbleed</span>
@@ -170,23 +188,6 @@
             <span class="tag">GTFOBins</span>
           </div>
           <span class="wu-mini-date">2026-09-29</span>
-        </div>
-      </a>
-
-      <!-- Skynet -->
-      <a href="writeups/skynet.html" class="wu-mini">
-        <div class="wu-mini-top">
-          <span class="wu-mini-title">Skynet</span>
-          <span class="badge badge-easy">Easy</span>
-        </div>
-        <p class="wu-mini-desc">Anonymous SMB leaks a password list, SquirrelMail gives up Miles' credentials, and a hidden Cuppa CMS falls to Remote File Inclusion. Root via tar wildcard injection in a cron job.</p>
-        <div class="wu-mini-footer">
-          <div class="wu-mini-tags">
-            <span class="tag">smb enumeration</span>
-            <span class="tag">rfi</span>
-            <span class="tag">tar wildcard injection</span>
-          </div>
-          <span class="wu-mini-date">2026-09-22</span>
         </div>
       </a>
 

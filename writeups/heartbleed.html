@@ -41,7 +41,7 @@
 
   <div class="wu-header">
     <div class="wu-eyebrow">// TryHackMe · Linux · CVE-2014-0160 · Memory Disclosure</div>
-    <h1 class="wu-title">HeartBleed</h1>
+    <h1 class="wu-title">Heartbleed</h1>
     <div class="wu-meta-row">
       <div class="wu-meta-item">
         <span class="wu-meta-label">Date</span>
@@ -73,12 +73,12 @@
   <div class="wu-body">
 
     <h2 id="overview">// Overview</h2>
-    <p><strong>HeartBleed</strong> is a single-flag room built around <strong>CVE-2014-0160</strong>, the OpenSSL bug that broke the internet in 2014. The entire objective is to confirm the vulnerable service and pull the flag out of leaked server memory. It's a short box, but the vulnerability behind it is one of the most consequential in modern computing, which makes it a great one to understand properly rather than just run a scanner against.</p>
+    <p><strong>Heartbleed</strong> is a single-flag room built around <strong>CVE-2014-0160</strong>, the OpenSSL bug that broke the internet in 2014. The entire objective is to confirm the vulnerable service and pull the flag out of leaked server memory. It's a short box, but the vulnerability behind it is one of the most consequential in modern computing, which makes it a great one to understand properly rather than just run a scanner against.</p>
     <p><a href="https://tryhackme.com/room/heartbleed" target="_blank">View room on TryHackMe →</a></p>
     <p><em>Flags and puzzle answers have been redacted per TryHackMe's write-up policy. Technique and tooling are shown in full.</em></p>
 
-    <h2 id="background">// Background: What Is HeartBleed?</h2>
-    <p>HeartBleed lives in the TLS <strong>Heartbeat extension</strong> (RFC 6520), which lets a client and server check that a connection is still alive without renegotiating the whole session. A heartbeat request carries a small payload and a <em>claimed length</em> field describing how big that payload is.</p>
+    <h2 id="background">// Background: What Is Heartbleed?</h2>
+    <p>Heartbleed lives in the TLS <strong>Heartbeat extension</strong> (RFC 6520), which lets a client and server check that a connection is still alive without renegotiating the whole session. A heartbeat request carries a small payload and a <em>claimed length</em> field describing how big that payload is.</p>
     <p>The flaw: vulnerable OpenSSL versions trusted the claimed length without checking it against the actual payload size. Send a heartbeat claiming 64KB while supplying 1 byte, and the server reads 64KB starting just past your payload straight out of its own process memory and echoes it back. That's it. Just a slow drip of whatever happens to be in memory: session cookies, credentials, form submissions, and occasionally private key material.</p>
     <p>Affected: OpenSSL <strong>1.0.1 through 1.0.1f</strong> (and 1.0.2-beta). Patched in <strong>1.0.1g</strong>. The bug was independently discovered by Neel Mehta of Google and by Codenomicon, who coined the name and launched the now-famous logo.</p>
 
@@ -128,14 +128,14 @@ user_name=...&amp;user_email=...&amp;user_message=[redacted]</pre>
     <p>The flag is in the standard <code>THM{...}</code> format, embedded inside a URL-encoded form body. That's the whole room.</p>
 
     <h3>Other Artefacts in the Leak</h3>
-    <p>The dump also contained chunks of the server's <strong>X.509 certificate</strong>, <code>C=UK, L=London, O=TryHackMe, CN=localhost</code>, with a validity window from 2019 to 2020. That's the public cert, so not sensitive on its own, but it's a useful reminder of what HeartBleed <em>can</em> expose. With enough requests you can leak private key material, which is exactly why the bug was treated as a catastrophe for real-world TLS services.</p>
+    <p>The dump also contained chunks of the server's <strong>X.509 certificate</strong>, <code>C=UK, L=London, O=TryHackMe, CN=localhost</code>, with a validity window from 2019 to 2020. That's the public cert, so not sensitive on its own, but it's a useful reminder of what Heartbleed <em>can</em> expose. With enough requests you can leak private key material, which is exactly why the bug was treated as a catastrophe for real-world TLS services.</p>
 
     <div class="note">
-      <strong>Why this works:</strong> HeartBleed is a <em>read</em> primitive, not a code-execution primitive. You don't get a shell from it, you get whatever the process has recently handled. On a real target that's session tokens and credentials; on this box it's a deliberately planted form submission. The lesson generalises: memory disclosure bugs turn unrelated users' data into an attacker's data.
+      <strong>Why this works:</strong> Heartbleed is a <em>read</em> primitive, not a code-execution primitive. You don't get a shell from it, you get whatever the process has recently handled. On a real target that's session tokens and credentials; on this box it's a deliberately planted form submission. The lesson generalises: memory disclosure bugs turn unrelated users' data into an attacker's data.
     </div>
 
     <h2 id="verdict">// Verdict</h2>
-    <p>HeartBleed is a very short box: recon, one Metasploit module, and reading the output. As a CTF it's almost trivially easy. As a <em>lesson</em>, though, it's worth doing properly: the value is in understanding the heartbeat over-read, why the leak is probabilistic, and what a memory-disclosure bug actually hands an attacker. If you've ever wondered why "just patch OpenSSL" became a company-wide emergency in 2014, this room is the hands-on version of that answer.</p>
+    <p>Heartbleed is a very short box: recon, one Metasploit module, and reading the output. As a CTF it's almost trivially easy. As a <em>lesson</em>, though, it's worth doing properly: the value is in understanding the heartbeat over-read, why the leak is probabilistic, and what a memory-disclosure bug actually hands an attacker. If you've ever wondered why "just patch OpenSSL" became a company-wide emergency in 2014, this room is the hands-on version of that answer.</p>
     <p style="color: var(--text); font-size: 0.8rem;">
       <span style="color: var(--room-accent, var(--accent));">→</span> 6/10 — mechanically easy, historically important. Do it once to internalise CVE-2014-0160, then move on.
     </p>

